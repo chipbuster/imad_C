@@ -50,7 +50,7 @@ void ImageStats::update(float* inputs, float* weights, size_t nrow, size_t ncol)
   double weight, ratio;
   double* diff = new double[ncol]; //Difference between element and mean
 
-  for(int thisrow = 0; thisrow < nrow; thisrow++){
+  for(size_t thisrow = 0; thisrow < nrow; thisrow++){
     /*Eww ternary statement. If we have no weights vector, weights are all 1.
       Otherwise, weights are the values that are given to us */
     weight = weights==NULL ? 1 : weights[thisrow];
@@ -58,14 +58,14 @@ void ImageStats::update(float* inputs, float* weights, size_t nrow, size_t ncol)
     ratio = weight / this->sum_weights;
 
     //Calculate mean
-    for(int index = 0; index < ncol; index++){
+    for(size_t index = 0; index < ncol; index++){
       diff[index] = inputs[thisrow*ncol + index] - means(index);
       means(index) += diff[index] * ratio;
     }
 
     //Fill in upper triangular matrix of covariances
-    for(int j = 0; j < ncol; j++){
-      for(int k = j; k < ncol; k++){
+    for(size_t j = 0; j < ncol; j++){
+      for(size_t k = j; k < ncol; k++){
         covar(thisrow,k) += diff[j]*diff[k]*(1-ratio)*weight;
       }
     }
