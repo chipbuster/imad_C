@@ -26,6 +26,7 @@ void imad(string filename1="", string filename2=""){
   int yoffset = 0;
   int maxiter = 10;
   double tolerance = 0.001;
+  double pen = 0.0; //penalty
 
   /* selectBands() gets a series of bands from the user. For example, for
   a LandSat7 image, the vector might return [1,2,3,4,5,7] */
@@ -76,13 +77,16 @@ void imad(string filename1="", string filename2=""){
     }
     MatrixXf S = cpm.get_covar();
     VectorXf means = cpm.get_means();
-    MatrixXf s11, s12, s21, s22, b1, c1, b2, c2;
+    MatrixXf s11 = S.block(0,0,nBands,nBands);
+    MatrixXf s12 = S.block(0,nBands,nBands,nBands);
+    MatrixXf s21 = S.block(nBands,0,nBands,nBands);
+    MatrixXf s22 = S.block(nBands,nBands,nBands,nBands);
+    MatrixXf b1  = s11;
+    MatrixXf c1  = s12 * s22.inverse() * s21;
+    MatrixXf b2  = s22;
+    MatrixXf c2  = s21 * s11.inverse() * s22;
+
     
-
-
-
-
-
 
 
   }

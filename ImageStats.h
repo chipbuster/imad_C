@@ -7,7 +7,10 @@ using Eigen::VectorXf;
 using Eigen::MatrixXf;
 
 class ImageStats{
-  int nBands;
+  int n2Bands;
+  /* Because the number of bands passed to ImageStats is 2x the number of
+   * bands defined in the main iMad algorithm, it has a different name
+   * to avoid confusion. */
   double sum_weights;
   VectorXf means;
   MatrixXf covar;
@@ -21,10 +24,10 @@ public:
   void update(float* inputs, float* weights, size_t nrow, size_t ncol);
 };
 
-ImageStats::ImageStats(int bands){
-    nBands = bands;
-    means(nBands);
-    covar(nBands,nBands);
+ImageStats::ImageStats(int input){
+    n2Bands = input;
+    means(n2Bands);
+    covar(n2Bands,n2Bands);
     sum_weights = 0.0;
 }
 
@@ -39,8 +42,8 @@ MatrixXf ImageStats::get_covar(){
 }
 
 void ImageStats::zero(){
-  means.setZero(nBands);
-  covar.setZero(nBands,nBands);
+  means.setZero(n2Bands);
+  covar.setZero(n2Bands,n2Bands);
   sum_weights = 0.0;
 }
 
