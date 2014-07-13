@@ -39,8 +39,8 @@ MatrixXf ImageStats::get_covar(){
 }
 
 void ImageStats::zero(){
-  means.Zero(nBands);
-  covar.Zero(nBands,nBands);
+  means.setZero(nBands);
+  covar.setZero(nBands,nBands);
   sum_weights = 0.0;
 }
 
