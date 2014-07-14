@@ -4,24 +4,25 @@
 #include <iostream>
 #include <vector>
 #include <Eigen/Dense>
+#include <math.h>
 
 using namespace std;
 using Eigen::MatrixXf;
 using Eigen::VectorXf;
 
 void imad(string filename1="", string filename2=""){
-  GDALAllRegister(); //Must be called before GDAL functions
+  GDALAllRegister(); //Must be called at start, see GDAL API for details
 
   //openFile() will ask us for filenames if the names are blank
   GDALDataset* file1 = GdalFileIO::openFile(filename1);
   GDALDataset* file2 = GdalFileIO::openFile(filename2);
 
-  if(!GdalFileIO::dimensionsmatch(file1,file2)) return; //function reports exact error
+  if(!GdalFileIO::dimensionsmatch(file1,file2)) return; //function reports error
 
   int ncol = file1->GetRasterXSize();
   int nrow = file1->GetRasterYSize();
 
-  //Temporary hardcoding. Eventually, will be user-specified
+  //Temporary hardcoding of values. Eventually, will be user-specified
   int xoffset = 0;
   int yoffset = 0;
   int maxiter = 10;
@@ -33,8 +34,8 @@ void imad(string filename1="", string filename2=""){
   vector<int>& bandnums = *GdalFileIO::selectBands();
   int nBands = bandnums.size();
 
-  vector<GDALRasterBand*> bands_1 = vector<GDALRasterBand*>(nBands);
-  vector<GDALRasterBand*> bands_2 = vector<GDALRasterBand*>(nBands);
+  vector<GDALRasterBand*> bands_1  = vector<GDALRasterBand*>(nBands);
+  vector<GDALRasterBand*> bands_2  = vector<GDALRasterBand*>(nBands);
   vector<double> noDataValues      = vector<double>(nBands);
 
   //Get easy handles to raster bands (pointers)
@@ -90,17 +91,28 @@ void imad(string filename1="", string filename2=""){
     //Solve the eigenproblem
     VectorXf mu2, mu;
     if(nBands == 1){
-      mu2 = c1/b1;
-      A = 1 / b1.sqrt();
-      B = 1 / b2.sqrt();
+      mu2(0) = c1(0,0)/b1(0,0);
+      A(0,0) = 1 / sqrt(b1(0,0));
+      B(0,0) = 1 / sqrt(b2(0,0));
     }
     else{
-      GeneralizedSelfAdjointEigenSolver<MatrixXf> solver1(c1,b1);
-      GeneralizedSelfAdjointEigenSolver<MatrixXf> solver2(c2,b2);
-      if (solver1.info() != Success || solver2.info() != Success{
+      Eigen::GeneralizedSelfAdjointEigenSolver<MatrixXf> solver1(c1,b1);
+      Eigen::GeneralizedSelfAdjointEigenSolver<MatrixXf> solver2(c2,b2);
+      if (solver1.info() != Eigen::Success || solver2.info() != Eigen::Success){
         throw std::runtime_error("Eigensolver did not converge!");
       }
-      mu2 = solver.eigenvalues();
+      mu2 = solver1.eigenvalues(); //Eigenvalues should be identical
+      A = solver1.eigenvectors();
+      B = solver2.eigenvectors();
+
+      /* We now need to sort the eigenvalues by their eigenvectors and return.
+       * This is handled by a utility function. At the end of the function,
+       * mu2 should be sorted in descending order, and the eigenvecs should be
+       * in the appropriate order */
+
+      imad_util::reorder_eigens(&mu2, &A, &B);
+
+
 
     }
   }

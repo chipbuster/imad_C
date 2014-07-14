@@ -16,13 +16,14 @@
 
 namespace GdalFileIO{
 
+/*
   struct ImageDims{
     int xoffset;
     int yoffset;
     int nrow;
     int ncol;
 
-    bool operator==(const ImageDims& other){
+    bool operator==(const ImageDims& other) const{
       if(xoffset == other.xoffset &&
          yoffset == other.yoffset &&
          nrow    == other.nrow    &&
@@ -32,6 +33,7 @@ namespace GdalFileIO{
       else return false;
     }
   };
+  */
 
   //Found in openGdalFiles.cpp
   GDALDataset* openFile(std::string filename);
@@ -40,5 +42,18 @@ namespace GdalFileIO{
 
 }
 
+namespace imad_util{
+
+  struct Eigentup{
+    double eigenval;
+    VectorXf eigenvec_a;
+    VectorXf eigenvec_b;
+    bool operator < (Eigentup const &other) const;
+    Eigentup(double val, VectorXf vec_a, VectorXf vec_b);
+  };
+
+  void reorder_eigens(VectorXf * lambda, MatrixXf* A, MatrixXf* B);
+
+}
 
 #endif
