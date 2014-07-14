@@ -55,6 +55,9 @@ namespace GdalFileIO{
         bands->push_back(atof(input.c_str()));
         cin >> input;
       }
+      if (bands->size() < 1){
+        throw std::out_of_range("Need to specify at least one band.")
+      }
       return bands;
     }
 

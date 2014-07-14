@@ -18,8 +18,8 @@ void imad(string filename1="", string filename2=""){
 
   if(!GdalFileIO::dimensionsmatch(file1,file2)) return; //function reports exact error
 
-  int nrow = file1->GetRasterXSize();
-  int ncol = file1->GetRasterYSize();
+  int ncol = file1->GetRasterXSize();
+  int nrow = file1->GetRasterYSize();
 
   //Temporary hardcoding. Eventually, will be user-specified
   int xoffset = 0;
@@ -47,11 +47,11 @@ void imad(string filename1="", string filename2=""){
   //Input state is done. Set up for calculations.
 
   /* tile is a strange name for a matrix (borrowed from the python code).
-  It holds a single row of both images. The top half of the matrix holds
-  the row from file1, with all of its bands in separate rows (e.g. for any
-  given row, row 1 of tile will hold image1, band1, row 2 will hold image1,
-  band2, etc.). The same is true of the second image in the bottom half of the
-  matrix. */
+   * It holds a single row of both images. The top half of the matrix holds
+   * the row from file1, with all of its bands in separate rows (e.g. for any
+   * given row, row 1 of tile will hold image1, band1, row 2 will hold image1,
+   * band2, etc.). The same is true of the second image in the bottom
+   * half of the matrix. */
 
   float* tile = new float[2 * nBands * ncol];
   ImageStats cpm = ImageStats(nBands * 2);
@@ -59,7 +59,8 @@ void imad(string filename1="", string filename2=""){
   VectorXf rho, oldrho;
   MatrixXf sigMADs, means1, means2, A, B, cov;
 
-  //Start calculations (note double conditional in for-loop)
+  /* Start calculations (note double conditional in for-loop: we will continue
+   * until the delta is smaller than the tolerance or to maxiter iterations) */
   for(int iter = 0; iter < maxiter && delta > tolerance; iter++){
     for(int row = 0; row < nrow; row++){
       for(int k = 0; k < nBands; k++){
@@ -72,23 +73,36 @@ void imad(string filename1="", string filename2=""){
                              &tile[(k + nBands) * ncol], ncol, 1,
                              GDT_Float32, 0,0 );
       }
-      if(iter > 0){} //Not sure how to implement this yet
+      if(iter > 0){} //Not sure how to implement this yets
       else cpm.update(tile, NULL, ncol, 2*nBands);
     }
     MatrixXf S = cpm.get_covar();
     VectorXf means = cpm.get_means();
-    MatrixXf s11 = S.block(0,0,nBands,nBands);
-    MatrixXf s12 = S.block(0,nBands,nBands,nBands);
-    MatrixXf s21 = S.block(nBands,0,nBands,nBands);
-    MatrixXf s22 = S.block(nBands,nBands,nBands,nBands);
+    MatrixXf s11 = S.block(0,0,nBands,nBands);           //Upper left
+    MatrixXf s12 = S.block(0,nBands,nBands,nBands);      //Upper right
+    MatrixXf s21 = S.block(nBands,0,nBands,nBands);      //Lower left
+    MatrixXf s22 = S.block(nBands,nBands,nBands,nBands); //Lower right
     MatrixXf b1  = s11;
     MatrixXf c1  = s12 * s22.inverse() * s21;
     MatrixXf b2  = s22;
     MatrixXf c2  = s21 * s11.inverse() * s22;
 
-    
+    //Solve the eigenproblem
+    VectorXf mu2, mu;
+    if(nBands == 1){
+      mu2 = c1/b1;
+      A = 1 / b1.sqrt();
+      B = 1 / b2.sqrt();
+    }
+    else{
+      GeneralizedSelfAdjointEigenSolver<MatrixXf> solver1(c1,b1);
+      GeneralizedSelfAdjointEigenSolver<MatrixXf> solver2(c2,b2);
+      if (solver1.info() != Success || solver2.info() != Success{
+        throw std::runtime_error("Eigensolver did not converge!");
+      }
+      mu2 = solver.eigenvalues();
 
-
+    }
   }
 
   delete &bandnums;
