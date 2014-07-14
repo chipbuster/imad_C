@@ -53,7 +53,6 @@ namespace imad_util{
   };
 
   void reorder_eigens(VectorXf * lambda, MatrixXf* A, MatrixXf* B);
-
 }
 
 #endif

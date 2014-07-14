@@ -9,6 +9,8 @@
 using namespace std;
 using Eigen::MatrixXf;
 using Eigen::VectorXf;
+using Eigen::ArrayXXf;
+using Eigen::ArrayXf;
 
 void imad(string filename1="", string filename2=""){
   GDALAllRegister(); //Must be called at start, see GDAL API for details
@@ -57,8 +59,11 @@ void imad(string filename1="", string filename2=""){
   float* tile = new float[2 * nBands * ncol];
   ImageStats cpm = ImageStats(nBands * 2);
   double delta = 1.0;
-  VectorXf rho, oldrho;
+  VectorXf rho, oldrho = VectorXf::Zero(nBands);
   MatrixXf sigMADs, means1, means2, A, B, cov;
+  //Declare two special vectors
+  const VectorXf two = VectorXf::Constant(nBands, 2); //col vector of all "2"
+  const VectorXf one = VectorXf::Constant(nBands, 1); //col vector of all "1"
 
   /* Start calculations (note double conditional in for-loop: we will continue
    * until the delta is smaller than the tolerance or to maxiter iterations) */
@@ -74,7 +79,7 @@ void imad(string filename1="", string filename2=""){
                              &tile[(k + nBands) * ncol], ncol, 1,
                              GDT_Float32, 0,0 );
       }
-      if(iter > 0){} //Not sure how to implement this yets
+      if(iter > 0){} //Not sure how to implement this yet
       else cpm.update(tile, NULL, ncol, 2*nBands);
     }
     MatrixXf S = cpm.get_covar();
@@ -104,6 +109,7 @@ void imad(string filename1="", string filename2=""){
       mu2 = solver1.eigenvalues(); //Eigenvalues should be identical
       A = solver1.eigenvectors();
       B = solver2.eigenvectors();
+    }
 
       /* We now need to sort the eigenvalues by their eigenvectors and return.
        * This is handled by a utility function. At the end of the function,
@@ -112,15 +118,52 @@ void imad(string filename1="", string filename2=""){
 
       imad_util::reorder_eigens(&mu2, &A, &B);
 
+      mu = mu2.array().sqrt().matrix(); //All aboard the crazy train!
 
+      //Calculate the variances of the eigenvectors (Var(e1), Var(e2), etc.)
+      VectorXf eigvarA = (A * A.transpose()).diagonal();
+      VectorXf eigvarB = (B * B.transpose()).diagonal();
+
+      //Calculate the penalized MAD significances
+      //If you do not understand the math, try mentally setting pen to zero
+      VectorXf sigma = ((two - pen*(eigvarA + eigvarB)) / (1 - pen) - 2 * mu);
+
+      //A lot of nasty dancing between array and matrix types
+      VectorXf rho = (
+        mu.array() * (1 - pen)                                       //numerator
+                   /                                                 //---------
+        ((one - pen*eigvarA) * (one - pen*eigvarB)).array().sqrt()  //denominator
+                     ).matrix();
+
+      delta = (rho - oldrho).maxCoeff();
+      oldrho = rho;
+
+      /*We now "tile" the sigmas and means */
+
+      /* These last five lines were basically copied over verbatim from Python.
+       * I stopped keeping track of what everything was for. Sorry :\
+       * Note: Do expect overly-verbose commenting here. */
+
+      /* We make a vector that is just the diagonal elements of s11. Then we
+       * take the inverse square root (1/sqrt(x)) of those diagonal elements
+       * and recast to a matrix. */
+
+       //TODO: Rewrite and understand this section
+        MatrixXf D = s11.diagonal().array().sqrt().cwiseInverse().matrix().asDiagonal();
+        MatrixXf s = (D*s11*A).colwise().sum();
+        A = A * (s.array()/s.array().abs()).matrix();
+        cov = (A.transpose() * s12 * B).diagonal();
+        B = B * (cov.array() / cov.array().abs()).matrix().asDiagonal();
 
     }
-  }
+
+  //End iterations. Gear up to write final result to file.
 
   delete &bandnums;
   delete[] tile;
 }
 
 int main(){ //dummy main
+  vector<int>* asd = GdalFileIO::selectBands();
   return 0;
 }
