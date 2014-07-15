@@ -61,3 +61,11 @@ void ImageStats::update(MapRMMatrixXf& input,
 
   delete[] diff;
 }
+
+/* Python stores an image row in a column, with different bands in
+ * different columns. The C++ code stores images in rows, with different
+ * bands in distinct rows (that is, in C++, you read right to find more
+ * pixels from the same band, and read down to find the pixel value from
+ * a different band in the same location, whereas in Python, you read
+ * down to find more pixels in the same band, and right for different
+ * bands). */

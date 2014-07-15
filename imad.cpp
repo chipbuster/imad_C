@@ -94,7 +94,7 @@ void imad(std::string filename1="", std::string filename2=""){
         imad_utils::colwise_subtract(top, means1);
         imad_utils::colwise_subtract(bot, means2);
         //top and bot are now zero-mean matrices. Do some math to them.
-        MatrixXf mads = top * A - bot * B;
+        MatrixXf mads = top.transpose() * A - bot.transpose() * B;
         MatrixXf chisqr =
 
       }
