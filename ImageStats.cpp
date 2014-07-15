@@ -1,4 +1,7 @@
-#include "ImageStats.h"
+#include "imad.h"
+
+//typedef Map<Matrix<float,Dynamic,Dynamic,RowMajor> > MapRMMatrixXf;
+//defined in imad.h
 
 ImageStats::ImageStats(int input){
     n2Bands = input;
@@ -12,7 +15,7 @@ VectorXf ImageStats::get_means(){
 }
 
 MatrixXf ImageStats::get_covar(){
-  covar = covar / (sum_weights - 1.0);
+  covar = (covar.array() / (sum_weights - 1.0)).matrix();
   MatrixXf diagonal = covar.diagonal().asDiagonal();
   return covar + covar.transpose() - diagonal;
 }
@@ -25,27 +28,33 @@ void ImageStats::zero(){
 
 //TODO: Separate updates for mean and covar?
 
-void ImageStats::update(float* inputs, float* weights, size_t nrow, size_t ncol){
+void ImageStats::update(MapRMMatrixXf& input,
+                        MatrixXf& weights, size_t nrow, size_t ncol){
+  /* inputs has rows in rows, each row is a diff. band. This is a transpose
+   * of the Python algorithm, where we have rows in columns and each column
+   * is a difference band. */
   double weight, ratio;
-  double* diff = new double[ncol]; //Difference between element and mean
+  double* diff = new double[nrow]; //Difference between element and mean
+  bool no_weights = (weights.cols() == 0 && weights.rows() == 0);
 
-  for(size_t thisrow = 0; thisrow < nrow; thisrow++){
-    /*Eww ternary statement. If we have no weights vector, weights are all 1.
-      Otherwise, weights are the values that are given to us */
-    weight = weights==NULL ? 1 : weights[thisrow];
-    this->sum_weights += weight;
-    ratio = weight / this->sum_weights;
+  for(int pix = 0; pix < input.cols(); pix++ ){
+    /* We traverse down columns to get the averages. Each column in input is the
+     * same pixel, but in different bands/images. */
 
-    //Calculate mean
-    for(size_t index = 0; index < ncol; index++){
-      diff[index] = inputs[thisrow*ncol + index] - means(index);
-      means(index) += diff[index] * ratio;
+    weight = no_weights ? 1 : weights(pix); //If no weights, weight default to 1
+    sum_weights += weight;
+    ratio = weight / sum_weights;
+
+    //Calculate mean of band via provisional means algorithm
+    for(int band = 0; band < input.cols(); band++){
+      diff[band] = input(band,pix) - means(band);
+      means(band) += diff[band] * ratio;
     }
-
-    //Fill in upper triangular matrix of covariances
-    for(size_t j = 0; j < ncol; j++){
-      for(size_t k = j; k < ncol; k++){
-        covar(thisrow,k) += diff[j]*diff[k]*(1-ratio)*weight;
+    /* Calculate covariance similarly, fill in upper tri covar matrix
+     * B2 is the entry for band 1, b2 is the entry for band 2. */
+    for(int b1 = 0; b1 < input.cols(); b1++){
+      for(int b2 = b1; b2 < input.rows(); b2++){
+        covar(b1,b2) = diff[b1] * diff[b2] * (1-ratio) * weight;
       }
     }
   }

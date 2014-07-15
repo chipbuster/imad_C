@@ -3,16 +3,16 @@
 #include <string>
 #include <iostream>
 #include <vector>
+#include <cstdlib>
 #include <Eigen/Dense>
 #include <math.h>
 
-using namespace std;
-using Eigen::MatrixXf;
-using Eigen::VectorXf;
-using Eigen::ArrayXXf;
-using Eigen::ArrayXf;
+using namespace Eigen;
 
-void imad(string filename1="", string filename2=""){
+//typedef Map<Matrix<float,Dynamic,Dynamic,RowMajor> > MapRMMatrixXf;
+//defined in imad.h
+
+void imad(std::string filename1="", std::string filename2=""){
   GDALAllRegister(); //Must be called at start, see GDAL API for details
 
   //openFile() will ask us for filenames if the names are blank
@@ -33,12 +33,12 @@ void imad(string filename1="", string filename2=""){
 
   /* selectBands() gets a series of bands from the user. For example, for
   a LandSat7 image, the vector might return [1,2,3,4,5,7] */
-  vector<int>& bandnums = *GdalFileIO::selectBands();
+  std::vector<int>& bandnums = *GdalFileIO::selectBands();
   int nBands = bandnums.size();
 
-  vector<GDALRasterBand*> bands_1  = vector<GDALRasterBand*>(nBands);
-  vector<GDALRasterBand*> bands_2  = vector<GDALRasterBand*>(nBands);
-  vector<double> noDataValues      = vector<double>(nBands);
+  std::vector<GDALRasterBand*> bands_1  = std::vector<GDALRasterBand*>(nBands);
+  std::vector<GDALRasterBand*> bands_2  = std::vector<GDALRasterBand*>(nBands);
+  std::vector<double> noDataValues      = std::vector<double>(nBands);
 
   //Get easy handles to raster bands (pointers)
   for(size_t i = 0; i < bandnums.size(); i++){
@@ -54,14 +54,16 @@ void imad(string filename1="", string filename2=""){
    * the row from file1, with all of its bands in separate rows (e.g. for any
    * given row, row 1 of tile will hold image1, band1, row 2 will hold image1,
    * band2, etc.). The same is true of the second image in the bottom
-   * half of the matrix. */
+   * half of tile. Note that this tile is transposed compared to the one in
+   * Python: Pyversion has rows in cols and files split left/right. */
 
   float* tile = new float[2 * nBands * ncol];
   ImageStats cpm = ImageStats(nBands * 2);
   double delta = 1.0;
   VectorXf rho, oldrho = VectorXf::Zero(nBands);
-  MatrixXf sigMADs, means1, means2, A, B, cov;
-  //Declare two special vectors
+  MatrixXf sigMADs, A, B, cov;
+  VectorXf means1, means2;
+  //Declare two special vectors for calculations later on
   const VectorXf two = VectorXf::Constant(nBands, 2); //col vector of all "2"
   const VectorXf one = VectorXf::Constant(nBands, 1); //col vector of all "1"
 
@@ -79,8 +81,27 @@ void imad(string filename1="", string filename2=""){
                              &tile[(k + nBands) * ncol], ncol, 1,
                              GDT_Float32, 0,0 );
       }
-      if(iter > 0){} //Not sure how to implement this yet
-      else cpm.update(tile, NULL, ncol, 2*nBands);
+
+      //Mapped row-major matrix, typedef'ed in imad.h
+      MapRMMatrixXf tileMat(tile,2*nBands,ncol);
+
+      //ImageStats expects a
+      if(iter > 0){
+        MapRMMatrixXf top(tile, nBands, ncol);
+        MapRMMatrixXf bot(tile + nBands*ncol, nBands, ncol);
+
+        //Subtract off the means from the previous iteration (utility function)
+        imad_utils::colwise_subtract(top, means1);
+        imad_utils::colwise_subtract(bot, means2);
+        //top and bot are now zero-mean matrices. Do some math to them.
+        MatrixXf mads = top * A - bot * B;
+        MatrixXf chisqr =
+
+      }
+      else{
+        MatrixXf tmp(0,0);
+        cpm.update(tileMat, tmp, ncol, 2*nBands);
+      }
     }
     MatrixXf S = cpm.get_covar();
     VectorXf means = cpm.get_means();
@@ -116,7 +137,7 @@ void imad(string filename1="", string filename2=""){
        * mu2 should be sorted in descending order, and the eigenvecs should be
        * in the appropriate order */
 
-      imad_util::reorder_eigens(&mu2, &A, &B);
+      imad_utils::reorder_eigens(mu2, A, B);
 
       mu = mu2.array().sqrt().matrix(); //All aboard the crazy train!
 
@@ -124,8 +145,11 @@ void imad(string filename1="", string filename2=""){
       VectorXf eigvarA = (A * A.transpose()).diagonal();
       VectorXf eigvarB = (B * B.transpose()).diagonal();
 
-      //Calculate the penalized MAD significances
-      //If you do not understand the math, try mentally setting pen to zero
+      /* Calculate the penalized MAD significances. If you do not understand the
+       * math, try mentally setting pen to zero and then matching this with the
+       * equations from DOI:10.1016/j.rse.2003.10.024. The Greek variable names
+       * have been chosen to line up with the variable names in that paper. */
+
       VectorXf sigma = ((two - pen*(eigvarA + eigvarB)) / (1 - pen) - 2 * mu);
 
       //A lot of nasty dancing between array and matrix types
@@ -138,22 +162,22 @@ void imad(string filename1="", string filename2=""){
       delta = (rho - oldrho).maxCoeff();
       oldrho = rho;
 
-      /*We now "tile" the sigmas and means */
+      //In the python code, we tile these to get an array. To save memory for
+      //large images, we will
+      //sigma = sigMADs
+      means1 = means.block(0,0,nBands,1);
+      means2 = means.block(nBands,0,nBands,1);
 
-      /* These last five lines were basically copied over verbatim from Python.
-       * I stopped keeping track of what everything was for. Sorry :\
-       * Note: Do expect overly-verbose commenting here. */
+      /* What follows are some of the most poorly-commented lines from the
+       * original Python implementation, and my understanding of them is still
+       * fuzzy. I have included modified versions of the original comments, and
+       * the lines are each numbered, with comment-footnotes at the end of the file */
 
-      /* We make a vector that is just the diagonal elements of s11. Then we
-       * take the inverse square root (1/sqrt(x)) of those diagonal elements
-       * and recast to a matrix. */
-
-       //TODO: Rewrite and understand this section
-        MatrixXf D = s11.diagonal().array().sqrt().cwiseInverse().matrix().asDiagonal();
-        MatrixXf s = (D*s11*A).colwise().sum();
-        A = A * (s.array()/s.array().abs()).matrix();
-        cov = (A.transpose() * s12 * B).diagonal();
-        B = B * (cov.array() / cov.array().abs()).matrix().asDiagonal();
+/* 1 */ MatrixXf D = s11.diagonal().array().sqrt().cwiseInverse().matrix().asDiagonal();
+/* 2 */ MatrixXf s = (D*s11*A).colwise().sum();
+/* 3 */ A = A * (s.array()/s.array().abs()).matrix();
+/* 4 */ cov = (A.transpose() * s12 * B).diagonal();
+/* 5 */ B = B * (cov.array() / cov.array().abs()).matrix().asDiagonal();
 
     }
 
@@ -164,6 +188,26 @@ void imad(string filename1="", string filename2=""){
 }
 
 int main(){ //dummy main
-  vector<int>* asd = GdalFileIO::selectBands();
+  std::vector<int>* asd = GdalFileIO::selectBands();
+  delete asd;
   return 0;
 }
+/**** Notes on lines 1-5 in imad() ****/
+/* While going through these, it is helpful to remember that left multiplying by
+ * a diagonal matrix (D*A) multiplies each row by the diagonal element, i.e.
+ * row1(A) = row1(A) * D(1,1), row2(A) = row2(A) * D(2,2), etc. and right-multiplying
+ * by a diagonal matrix multiplies the columns instead of the rows. Off we go!*/
+
+/* 1 */ /* Completely unintelligible. First, we take the diagonal of s11. We then
+ * cast it to an array (to deal with some issues with eigen), then take an
+ * element-wise inverse square root. We then revert it back to a diagonal matrix.
+ * The end effect is identical to masking all but the diagonal of s11, then
+ * taking an element-wise inverse square root. */
+
+/* 2 */ /* s is actually a row-vector. Not sure what this actually does */
+
+/* 3 */ /* If S(i,i) was negative, we set it to -1. Otherwise, we set it to +1.
+ * We then multiply A by this matrix to ensure the correlation sum is positive
+ * (Yes, this part feels like magic to me too). */
+
+/* 4,5 */ /* A similar process for B */

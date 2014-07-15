@@ -3,7 +3,6 @@
 
 #include "gdal_priv.h"
 #include "cpl_conv.h" // for CPLMalloc()
-#include "ImageStats.h" //Includes <Eigen/Dense>
 #include <Eigen/Dense>
 #include <vector>
 #include <iostream>
@@ -11,8 +10,13 @@
 #include <cstdlib>
 #include <stdexcept>
 
+
+using namespace Eigen;
+
 /* This file contains the headers for the iMad project. */
 /* All GDAL functions derive from gdal_priv.h           */
+
+typedef Map<Matrix<float,Dynamic,Dynamic,RowMajor> > MapRMMatrixXf;
 
 namespace GdalFileIO{
 
@@ -42,7 +46,7 @@ namespace GdalFileIO{
 
 }
 
-namespace imad_util{
+namespace imad_utils{
 
   struct Eigentup{
     double eigenval;
@@ -52,7 +56,25 @@ namespace imad_util{
     Eigentup(double val, VectorXf vec_a, VectorXf vec_b);
   };
 
-  void reorder_eigens(VectorXf * lambda, MatrixXf* A, MatrixXf* B);
+  void reorder_eigens(VectorXf& lambda, MatrixXf& A, MatrixXf& B);
+  void colwise_subtract(MapRMMatrixXf& A, VectorXf& toSubtract);
 }
+
+
+
+class ImageStats{
+  int n2Bands;
+  double sum_weights;
+  VectorXf means;
+  MatrixXf covar;
+
+ public:
+  ImageStats(int bands);
+  VectorXf get_means();
+  MatrixXf get_covar();
+
+  void zero();
+  void update(MapRMMatrixXf& input, MatrixXf& weights, size_t nrow, size_t ncol);
+};
 
 #endif
