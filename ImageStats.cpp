@@ -29,13 +29,13 @@ void ImageStats::zero(){
 //TODO: Separate updates for mean and covar?
 
 void ImageStats::update(MapRMMatrixXf& input,
-                        MatrixXf& weights, size_t nrow, size_t ncol){
+                        RowVectorXf& weights, size_t nrow, size_t ncol){
   /* inputs has rows in rows, each row is a diff. band. This is a transpose
    * of the Python algorithm, where we have rows in columns and each column
    * is a difference band. */
   double weight, ratio;
   double* diff = new double[nrow]; //Difference between element and mean
-  bool no_weights = (weights.cols() == 0 && weights.rows() == 0);
+  bool no_weights = (weights.cols() == 0);
 
   for(int pix = 0; pix < input.cols(); pix++ ){
     /* We traverse down columns to get the averages. Each column in input is the

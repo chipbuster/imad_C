@@ -61,8 +61,8 @@ void imad(std::string filename1="", std::string filename2=""){
   ImageStats cpm = ImageStats(nBands * 2);
   double delta = 1.0;
   VectorXf rho, oldrho = VectorXf::Zero(nBands);
-  MatrixXf sigMADs, A, B, cov;
-  VectorXf means1, means2;
+  MatrixXf A, B, cov;
+  VectorXf  sigMADs, means1, means2;
   //Declare two special vectors for calculations later on
   const VectorXf two = VectorXf::Constant(nBands, 2); //col vector of all "2"
   const VectorXf one = VectorXf::Constant(nBands, 1); //col vector of all "1"
@@ -82,10 +82,9 @@ void imad(std::string filename1="", std::string filename2=""){
                              GDT_Float32, 0,0 );
       }
 
-      //Mapped row-major matrix, typedef'ed in imad.h
+      //Mapped row-major matrix, typedef'ed in imad.h, see Eigen API on "Map"
       MapRMMatrixXf tileMat(tile,2*nBands,ncol);
 
-      //ImageStats expects a
       if(iter > 0){
         MapRMMatrixXf top(tile, nBands, ncol);
         MapRMMatrixXf bot(tile + nBands*ncol, nBands, ncol);
@@ -95,11 +94,15 @@ void imad(std::string filename1="", std::string filename2=""){
         imad_utils::colwise_subtract(bot, means2);
         //top and bot are now zero-mean matrices. Do some math to them.
         MatrixXf mads = top.transpose() * A - bot.transpose() * B;
-        MatrixXf chisqr =
-
+        imad_utils::rowwise_divide(mads,sigMADs);
+        //Take columnwise sum of squares, result is (1 x nBands) row vector
+        RowVectorXf chisqr = mads.array().square().colwise().sum().matrix();
+        RowVectorXf tmp(1,bandnums.size()); //Pass this into getWeights()
+        RowVectorXf weights = one - imad_utils::getWeights(chisqr, tmp, bandnums);
+        cpm.update(tileMat, weights, ncol, 2*nBands);
       }
       else{
-        MatrixXf tmp(0,0);
+        RowVectorXf tmp(0,0); //No-dims indicates we do not want to use weights
         cpm.update(tileMat, tmp, ncol, 2*nBands);
       }
     }
@@ -142,6 +145,7 @@ void imad(std::string filename1="", std::string filename2=""){
       mu = mu2.array().sqrt().matrix(); //All aboard the crazy train!
 
       //Calculate the variances of the eigenvectors (Var(e1), Var(e2), etc.)
+      //Note that in Python, these are row vectors, while they are column in C
       VectorXf eigvarA = (A * A.transpose()).diagonal();
       VectorXf eigvarB = (B * B.transpose()).diagonal();
 
@@ -162,9 +166,11 @@ void imad(std::string filename1="", std::string filename2=""){
       delta = (rho - oldrho).maxCoeff();
       oldrho = rho;
 
-      //In the python code, we tile these to get an array. To save memory for
-      //large images, we will
-      //sigma = sigMADs
+      /* In the python code, you tile (repeat) these vectors to get an array. To
+       * save memory for large images, we will use the funcs in imad_utils to do
+       * column/rowwise ops, saving the cost of huge repeating array in memory*/
+
+      sigMADs = sigma;
       means1 = means.block(0,0,nBands,1);
       means2 = means.block(nBands,0,nBands,1);
 
@@ -180,6 +186,8 @@ void imad(std::string filename1="", std::string filename2=""){
 /* 5 */ B = B * (cov.array() / cov.array().abs()).matrix().asDiagonal();
 
     }
+
+    //FINISHED WITH THE COMPUTATION CODE! LET'S GO GET A DRINK!
 
   //End iterations. Gear up to write final result to file.
 

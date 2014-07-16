@@ -15,6 +15,8 @@ using namespace Eigen;
 
 /* This file contains the headers for the iMad project. */
 /* All GDAL functions derive from gdal_priv.h           */
+/* Namespaces are named after their .cpp files, e.g. all functions in namespace
+ * GdalFileIO are implemented in GdalFileIO.cpp */
 
 typedef Map<Matrix<float,Dynamic,Dynamic,RowMajor> > MapRMMatrixXf;
 
@@ -49,18 +51,19 @@ namespace GdalFileIO{
 namespace imad_utils{
 
   struct Eigentup{
-    double eigenval;
-    VectorXf eigenvec_a;
-    VectorXf eigenvec_b;
     bool operator < (Eigentup const &other) const;
     Eigentup(double val, VectorXf vec_a, VectorXf vec_b);
+
+      double eigenval;
+      VectorXf eigenvec_a;
+      VectorXf eigenvec_b;
   };
 
   void reorder_eigens(VectorXf& lambda, MatrixXf& A, MatrixXf& B);
   void colwise_subtract(MapRMMatrixXf& A, VectorXf& toSubtract);
+  void rowwise_divide(MatrixXf& A, VectorXf& toDivide);
+  RowVectorXf& getWeights(RowVectorXf& inputs, RowVectorXf& outputs, std::vector<int>& bands);
 }
-
-
 
 class ImageStats{
   int n2Bands;
@@ -74,7 +77,7 @@ class ImageStats{
   MatrixXf get_covar();
 
   void zero();
-  void update(MapRMMatrixXf& input, MatrixXf& weights, size_t nrow, size_t ncol);
+  void update(MapRMMatrixXf& input, RowVectorXf& weights, size_t nrow, size_t ncol);
 };
 
 #endif
