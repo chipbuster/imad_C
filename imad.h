@@ -47,8 +47,6 @@ namespace GdalFileIO{
     double GeotoImg_Y(double geoX, double geoY);
     void GeotoImg(double& imgX, double& imgY);
     void ImgtoGeo(double& geoX, double& geoY);
-
-
   };
 
   //Found in openGdalFiles.cpp

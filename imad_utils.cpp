@@ -47,6 +47,8 @@ namespace imad_utils{
     return;
   }
 
+  /*************************************************************************/
+
   void colwise_subtract(MapRMMatrixXf& A, VectorXf& toSubtract){
     /* Subtracts a column vector from each column of the matrix. One hell of a
      * lot more efficient than the Python solution (repeat the vector as many
@@ -72,6 +74,8 @@ namespace imad_utils{
      }
   }
 
+  /*************************************************************************/
+
   RowVectorXf& getWeights(RowVectorXf& input, RowVectorXf& output, std::vector<int>& bands){
     /* Gets CDF of Chisquared and places into weights array. CDF function is
      * backwards compared to Python (in python, param to chi2.cdf is second arg)
@@ -86,6 +90,8 @@ namespace imad_utils{
     }
     return output;
   }
+
+  /*************************************************************************/
 
   bool Eigentup::operator< (Eigentup const &other) const{
     return (eigenval < other.eigenval);

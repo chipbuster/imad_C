@@ -12,7 +12,8 @@ using namespace Eigen;
 //typedef Map<Matrix<float,Dynamic,Dynamic,RowMajor> > MapRMMatrixXf;
 //defined in imad.h
 
-void imad(std::string filename1="", std::string filename2=""){
+void imad(std::string filename1="", std::string filename2="",
+          std::string output_file="", std::string format=""){
   GDALAllRegister(); //Must be called at start, see GDAL API for details
 
   //openFile() will ask us for filenames if the names are blank
@@ -45,6 +46,15 @@ void imad(std::string filename1="", std::string filename2=""){
     bands_1[i]     = (file1->GetRasterBand(bandnums[i]));
     bands_2[i]     = (file1->GetRasterBand(bandnums[i]));
     noDataValues[i] = bands_1[i]->GetNoDataValue();
+  }
+
+  if(output_file.empty()){
+
+    std::cout << "Valid formats: GTiff, PCIDSK, HFA, ENVI" << std::endl;
+    std::cout << "Please enter output format: ";
+    getline(std::cin, format);
+    std::cout << "Please enter output file name";
+    getline(std::cin, output_file);
   }
 
   //Input state is done. Set up for calculations.
@@ -163,7 +173,7 @@ void imad(std::string filename1="", std::string filename2=""){
         ((one - pen*eigvarA) * (one - pen*eigvarB)).array().sqrt()  //denominator
                      ).matrix();
 
-      delta = (rho - oldrho).maxCoeff();
+      delta = (rho - oldrho).maxCoeff(); //The max of diffs between correltaions
       oldrho = rho;
 
       /* In the python code, you tile (repeat) these vectors to get an array. To
@@ -174,12 +184,16 @@ void imad(std::string filename1="", std::string filename2=""){
       means1 = means.block(0,0,nBands,1);
       means2 = means.block(nBands,0,nBands,1);
 
-      /* What follows are some of the most poorly-commented lines from the
-       * original Python implementation, and my understanding of them is still
-       * fuzzy. I have included modified versions of the original comments, and
-       * the lines are each numbered, with comment-footnotes at the end of the file */
+  /* What follows are some of the most poorly-commented lines from the original
+   * Python implementation, and my understanding of them is still fuzzy.
+   * I have included modified versions of the original comments, and the
+   * lines are each numbered, with comment-footnotes at the end of the file */
 
-/* 1 */ MatrixXf D = s11.diagonal().array().sqrt().cwiseInverse().matrix().asDiagonal();
+   //You are not expected to understand these lines. I certainly don't.
+
+/* 1 */ MatrixXf D = s11.diagonal().array()      //Bookkeeping
+                        .sqrt().cwiseInverse()   //Inverse sqrt
+                        .matrix().asDiagonal();  //More bookkeeping
 /* 2 */ MatrixXf s = (D*s11*A).colwise().sum();
 /* 3 */ A = A * (s.array()/s.array().abs()).matrix();
 /* 4 */ cov = (A.transpose() * s12 * B).diagonal();
@@ -187,9 +201,21 @@ void imad(std::string filename1="", std::string filename2=""){
 
     }
 
-    //FINISHED WITH THE COMPUTATION CODE! LET'S GO GET A DRINK!
+  //FINISHED WITH THE COMPUTATION CODE! LET'S GO GET A DRINK!
 
   //End iterations. Gear up to write final result to file.
+
+  //First, close our two input files
+
+  if( file1 != NULL ) GDALClose( (GDALDatasetH) file1 );
+  if( file2 != NULL ) GDALClose( (GDALDatasetH) file2 );
+
+  GDALDriver* outdriver=GetGDALDriverManager()->GetDriverByName(format.c_str());
+  GDALDataset *outfile = outdriver->Create(output_file.c_str(),ncol,nrow,nBands,
+                                          GDT_Float32, NULL); //No options
+  const char* projection;
+
+
 
   delete &bandnums;
   delete[] tile;

@@ -6,6 +6,7 @@
 #include <string>
 #include <stdexcept>
 #include <math.h>
+#include <string.h> //Gdal libraries use const char*, need strcmp()
 
 using namespace std;
 
@@ -42,6 +43,11 @@ namespace GdalFileIO{
       }
       if(dataset1->GetRasterCount() != dataset2->GetRasterCount()){
         cout << "Raster count mismatch in images. Exiting..." << endl;
+        return false;
+      }
+      //If projections are not equal
+      if(strcmp(dataset1->GetProjectionRef(),dataset2->GetProjectionRef())){
+        cout << "Projections of files do not match. Exiting..." << endl;
         return false;
       }
       //All dimensions match!
