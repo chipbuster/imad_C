@@ -1,7 +1,7 @@
 CC=g++
 LD=g++
-CCFLAGS=-c -Wall -I/usr/include/eigen3
-LDFLAGS=-lgdal -lm
+CCFLAGS=-O2 -g -p -c -Wall -I/usr/include/eigen3
+LDFLAGS=-g -p -lgdal -lm
 
 
 all: imad.o GdalFileIO.o imad_utils.o ImageStats.o
@@ -18,6 +18,12 @@ GdalFileIO.o: GdalFileIO.cpp
 
 ImageStats.o: ImageStats.cpp
 	$(CC) $(CCFLAGS) ImageStats.cpp -o ImageStats.o
+
+debug: imad
+	gdb imad
+
+profile:
+
 
 clean:
 	rm *.o imad

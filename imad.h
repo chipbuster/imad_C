@@ -19,6 +19,7 @@ using namespace Eigen;
  * GdalFileIO are implemented in GdalFileIO.cpp. */
 
 typedef Map<Matrix<float,Dynamic,Dynamic,RowMajor> > MapRMMatrixXf;
+typedef Matrix<float,Dynamic,Dynamic,RowMajor> MatrixRXf;
 
 namespace GdalFileIO{
 
@@ -74,18 +75,19 @@ namespace imad_utils{
 }
 
 class ImageStats{
+public:
   int n2Bands;
   double sum_weights;
   VectorXf means;
   MatrixXf covar;
 
- public:
-  ImageStats(int bands);
+
+  ImageStats(size_t bands);
   VectorXf get_means();
   MatrixXf get_covar();
 
   void zero();
-  void update(MapRMMatrixXf& input, RowVectorXf& weights, size_t nrow, size_t ncol);
+  void update(float* input, float* weights, int nrow, int ncol);
 };
 
 #endif

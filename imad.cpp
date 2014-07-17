@@ -7,6 +7,8 @@
 #include <Eigen/Dense>
 #include <math.h>
 
+inline int max(int a, int b){  return a > b ? a : b; }
+
 using namespace Eigen;
 
 //typedef Map<Matrix<float,Dynamic,Dynamic,RowMajor> > MapRMMatrixXf;
@@ -28,7 +30,7 @@ void imad(std::string filename1="", std::string filename2="",
   //Temporary hardcoding of values. Eventually, will be user-specified
   int xoffset = 0;
   int yoffset = 0;
-  int maxiter = 10;
+  int maxiter = 1;
   double tolerance = 0.001;
   double pen = 0.0; //penalty
 
@@ -49,7 +51,6 @@ void imad(std::string filename1="", std::string filename2="",
   }
 
   if(output_file.empty()){
-
     std::cout << "Valid formats: GTiff, PCIDSK, HFA, ENVI" << std::endl;
     std::cout << "Please enter output format: ";
     getline(std::cin, format);
@@ -59,15 +60,19 @@ void imad(std::string filename1="", std::string filename2="",
 
   //Input state is done. Set up for calculations.
 
-  /* tile is a strange name for a matrix (borrowed from the python code).
-   * It holds a single row of both images. The top half of the matrix holds
-   * the row from file1, with all of its bands in separate rows (e.g. for any
-   * given row, row 1 of tile will hold image1, band1, row 2 will hold image1,
-   * band2, etc.). The same is true of the second image in the bottom
-   * half of tile. Note that this tile is transposed compared to the one in
-   * Python: Pyversion has rows in cols and files split left/right. */
+  /* See notes at bottom for explanation of tile matrix. We set up the chunking
+   * procedure for large images. In most cases, bufsize will be ncol and nb_pr
+   * (number of buffers per row) will be 1. For large, large images, you might
+   * need more than that. find_chunksize() modifies bufsize in-place (by ref)*/
 
+/* Part of chunking---not yet implemented
+  float* tile;
+  int bufrsize = -1; //size of one row in the tile buffer
+  int nb_pr = find_chunksize(bufsize, ncol, nBands);
+*/
   float* tile = new float[2 * nBands * ncol];
+  std::cout << "Image is " << nrow << " by " << ncol << std::endl;
+
   ImageStats cpm = ImageStats(nBands * 2);
   double delta = 1.0;
   VectorXf rho, oldrho = VectorXf::Zero(nBands);
@@ -80,42 +85,44 @@ void imad(std::string filename1="", std::string filename2="",
   /* Start calculations (note double conditional in for-loop: we will continue
    * until the delta is smaller than the tolerance or to maxiter iterations) */
   for(int iter = 0; iter < maxiter && delta > tolerance; iter++){
+    std::cout << "Mainloop start!" << std::endl;
     for(int row = 0; row < nrow; row++){
+      std::cout << "Row " << row << " of " << nrow << std::endl;
       for(int k = 0; k < nBands; k++){
         //Read into the appropriate location in tile.
         //The Python code for this might be easier to understand.
         bands_1[k]->RasterIO(GF_Read, xoffset, yoffset, ncol, 1,
-                             &tile[k * ncol], ncol, 1,
-                             GDT_Float32, 0,0 );
-        bands_1[k]->RasterIO(GF_Read, xoffset, yoffset, ncol, 1,
-                             &tile[(k + nBands) * ncol], ncol, 1,
-                             GDT_Float32, 0,0 );
+                             &tile[k], ncol, 1,
+                             GDT_Float32, sizeof(float)*(nBands*2), 0);
+        bands_2[k]->RasterIO(GF_Read, xoffset, yoffset, ncol, 1,
+                             &tile[k + nBands], ncol, 1,
+                             GDT_Float32, sizeof(float)*(nBands*2), 0);
       }
 
-      //Mapped row-major matrix, typedef'ed in imad.h, see Eigen API on "Map"
-      MapRMMatrixXf tileMat(tile,2*nBands,ncol);
-
       if(iter > 0){
+        //Mapped row-major matrix, typedef'ed in imad.h, see Eigen API on "Map"
+        MapRMMatrixXf tileMat(tile,2*nBands,ncol);
         MapRMMatrixXf top(tile, nBands, ncol);
         MapRMMatrixXf bot(tile + nBands*ncol, nBands, ncol);
 
         //Subtract off the means from the previous iteration (utility function)
         imad_utils::colwise_subtract(top, means1);
         imad_utils::colwise_subtract(bot, means2);
-        //top and bot are now zero-mean matrices. Do some math to them.
+        /* top and bot are now zero-mean matrices. Mads must be row-major for
+         * output purposes later on. */
         MatrixXf mads = top.transpose() * A - bot.transpose() * B;
         imad_utils::rowwise_divide(mads,sigMADs);
         //Take columnwise sum of squares, result is (1 x nBands) row vector
         RowVectorXf chisqr = mads.array().square().colwise().sum().matrix();
         RowVectorXf tmp(1,bandnums.size()); //Pass this into getWeights()
         RowVectorXf weights = one - imad_utils::getWeights(chisqr, tmp, bandnums);
-        cpm.update(tileMat, weights, ncol, 2*nBands);
+        cpm.update(tileMat.data(), weights.data(), ncol, 2*nBands);
       }
       else{
-        RowVectorXf tmp(0,0); //No-dims indicates we do not want to use weights
-        cpm.update(tileMat, tmp, ncol, 2*nBands);
+        cpm.update(tile, NULL, ncol, 2*nBands);
       }
     }
+    std::cout << "Done updating!" << std::endl;
     MatrixXf S = cpm.get_covar();
     VectorXf means = cpm.get_means();
     MatrixXf s11 = S.block(0,0,nBands,nBands);           //Upper left
@@ -126,6 +133,8 @@ void imad(std::string filename1="", std::string filename2="",
     MatrixXf c1  = s12 * s22.inverse() * s21;
     MatrixXf b2  = s22;
     MatrixXf c2  = s21 * s11.inverse() * s22;
+
+    std::cout << "C1" << c1 << std::endl;
 
     //Solve the eigenproblem
     VectorXf mu2, mu;
@@ -144,6 +153,8 @@ void imad(std::string filename1="", std::string filename2="",
       A = solver1.eigenvectors();
       B = solver2.eigenvectors();
     }
+
+    std::cout << "Eigens solved!" << std::endl;
 
       /* We now need to sort the eigenvalues by their eigenvectors and return.
        * This is handled by a utility function. At the end of the function,
@@ -205,28 +216,76 @@ void imad(std::string filename1="", std::string filename2="",
 
   //End iterations. Gear up to write final result to file.
 
-  //First, close our two input files
-
-  if( file1 != NULL ) GDALClose( (GDALDatasetH) file1 );
-  if( file2 != NULL ) GDALClose( (GDALDatasetH) file2 );
-
   GDALDriver* outdriver=GetGDALDriverManager()->GetDriverByName(format.c_str());
-  GDALDataset *outfile = outdriver->Create(output_file.c_str(),ncol,nrow,nBands,
-                                          GDT_Float32, NULL); //No options
-  const char* projection;
+  GDALDataset *outfile = outdriver->Create(output_file.c_str(),ncol,nrow,
+                                           nBands + 1, GDT_Float32, NULL);
+  const char* projection = file1->GetProjectionRef();
+  double* geotransform   = new double[6];
+  file1->GetGeoTransform(geotransform);
+    //Move the origins of the picture to the overlap zone. Not implemented yet.
+        // gt[0] = gt[0] + x10*gt[1]
+        // gt[3] = gt[3] + y10*gt[5]
+  outfile->SetGeoTransform(geotransform);
+  outfile->SetProjection(projection);
 
+  std::vector<GDALRasterBand*> outbands  = std::vector<GDALRasterBand*>(nBands);
+  for(int i = 0; i <= nBands; i++){
+    outbands[i] = outfile->GetRasterBand(i);
+  }
 
+  for(int i = 0; i < nrow; i++){
+    for(int k = 0; k < nBands; k++){
+      bands_1[k]->RasterIO(GF_Read, xoffset, yoffset, ncol, 1,
+                           &tile[k * ncol], ncol, 1,
+                           GDT_Float32, 0,0 );
+      bands_1[k]->RasterIO(GF_Read, xoffset, yoffset, ncol, 1,
+                           &tile[(k + nBands) * ncol], ncol, 1,
+                           GDT_Float32, 0,0 );
+    }
+    //Copied without comment from the iter>0 section above
+    MapRMMatrixXf top(tile, nBands, ncol);
+    MapRMMatrixXf bot(tile + nBands*ncol, nBands, ncol);
+    imad_utils::colwise_subtract(top, means1);
+    imad_utils::colwise_subtract(bot, means2);
+    MatrixXf mads = top.transpose() * A - bot.transpose() * B;
+    imad_utils::rowwise_divide(mads,sigMADs);
+    RowVectorXf chisqr = mads.array().square().colwise().sum().matrix();
+    for(int k = 0; k < nBands; k++){
+      size_t index = mads.rows() * k;
+      outbands[k]->RasterIO(GF_Write, xoffset, yoffset, ncol, 1,
+                           mads.data() + index, ncol, 1,
+                           GDT_Float32, 0,0 );
+      //implement chisqr to last band
+    }
+  }
 
+  //Cleanup in aisle 7!
+  GDALClose( (GDALDatasetH) file1 );
+  GDALClose( (GDALDatasetH) file2 );
+  GDALClose( (GDALDatasetH) outfile);
   delete &bandnums;
   delete[] tile;
 }
 
 int main(){ //dummy main
-  std::vector<int>* asd = GdalFileIO::selectBands();
-  delete asd;
+  std::string file1 = std::string("/home/chipbuster/POP_2014/lndsr.LE71960531999293EDC00.tif");
+  std::string file2 = std::string("/home/chipbuster/POP_2014/lndsr.LE71960532000120EDC00.tif");
+  std::string out = std::string("/home/chipbuster/POP_2014/C++_asd.tif");
+  std::string fmt = std::string("GTiff");
+  imad(file1,file2,out,fmt);
   return 0;
 }
-/**** Notes on lines 1-5 in imad() ****/
+
+/**** Notes on tile matrix ****/
+/* tile is a strange name for a matrix (borrowed from the python code).
+ * It holds a single row of both images. The top half of the matrix holds
+ * the row from file1, with all of its bands in separate rows (e.g. for any
+ * given row, row 1 of tile will hold image1, band1, row 2 will hold image1,
+ * band2, etc.). The same is true of the second image in the bottom
+ * half of tile. Note that this tile is transposed compared to the one in
+ * Python: Pyversion has rows in cols and files split left/right. */
+
+/**** Notes on numbered lines in imad() ****/
 /* While going through these, it is helpful to remember that left multiplying by
  * a diagonal matrix (D*A) multiplies each row by the diagonal element, i.e.
  * row1(A) = row1(A) * D(1,1), row2(A) = row2(A) * D(2,2), etc. and right-multiplying
