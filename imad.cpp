@@ -13,7 +13,7 @@ using namespace Eigen;
 using std::cout; //debugging purposes
 using std::endl;
 
-//typedef Map<Matrix<float,Dynamic,Dynamic,RowMajor> > MapRMMatrixXf;
+//typedef Map<Matrix<double,Dynamic,Dynamic,RowMajor> > MapRMMatrixXd;
 //defined in imad.h
 
 void imad(std::string filename1="", std::string filename2="",
@@ -32,8 +32,8 @@ void imad(std::string filename1="", std::string filename2="",
   //Temporary hardcoding of values. Eventually, will be user-specified
   int xoffset = 0;
   int yoffset = 0;
-  int maxiter = 10;
-  double tolerance = 0.001;
+  int maxiter = 1; //Set to 1 to test output
+  double tolerance = 0.00001;
   double pen = 0.0; //penalty
 
   /* selectBands() gets a series of bands from the user. For example, for
@@ -72,17 +72,17 @@ void imad(std::string filename1="", std::string filename2="",
   int bufrsize = -1; //size of one row in the tile buffer
   int nb_pr = find_chunksize(bufsize, ncol, nBands);
 */
-  float* tile = new float[2 * nBands * ncol];
+  double* tile = new double[2 * nBands * ncol];
   std::cout<< "Image is " << nrow << " by " << ncol << std::endl;
 
   ImageStats cpm = ImageStats(nBands * 2);
   double delta = 1.0;
-  VectorXf rho, oldrho = VectorXf::Zero(nBands);
-  MatrixXf A, B;
-  VectorXf  sigMADs, means1, means2;
+  VectorXd rho, oldrho = VectorXd::Zero(nBands);
+  MatrixXd A, B;
+  VectorXd  sigMADs, means1, means2;
   //Declare two special vectors for calculations later on
-  const VectorXf two = VectorXf::Constant(nBands, 2); //col vector of all "2"
-  const VectorXf one = VectorXf::Constant(nBands, 1); //col vector of all "1"
+  const VectorXd two = VectorXd::Constant(nBands, 2); //col vector of all "2"
+  const VectorXd one = VectorXd::Constant(nBands, 1); //col vector of all "1"
 
   /* Start calculations (note double conditional in for-loop: we will continue
    * until the delta is smaller than the tolerance or to maxiter iterations) */
@@ -95,29 +95,29 @@ void imad(std::string filename1="", std::string filename2="",
         //The Python code for this might be easier to understand.
         bands_1[k]->RasterIO(GF_Read, xoffset, yoffset + row, ncol, 1,
                              &tile[k], ncol, 1,
-                             GDT_Float32, sizeof(float)*(nBands*2), 0);
+                             GDT_Float64, sizeof(double)*(nBands*2), 0);
         bands_2[k]->RasterIO(GF_Read, xoffset, yoffset + row, ncol, 1,
                              &tile[k + nBands], ncol, 1,
-                             GDT_Float32, sizeof(float)*(nBands*2), 0);
+                             GDT_Float64, sizeof(double)*(nBands*2), 0);
       }
 
       if(iter > 0){
         //Mapped row-major matrix, typedef'ed in imad.h, see Eigen API on "Map"
-        MapRMMatrixXf tileMat(tile,2*nBands,ncol);
-        MapRMMatrixXf top(tile, nBands, ncol);
-        MapRMMatrixXf bot(tile + nBands*ncol, nBands, ncol);
+        MapRMMatrixXd tileMat(tile,2*nBands,ncol);
+        MapRMMatrixXd top(tile, nBands, ncol);
+        MapRMMatrixXd bot(tile + nBands*ncol, nBands, ncol);
 
         //Subtract off the means from the previous iteration (utility function)
         imad_utils::colwise_subtract(top, means1);
         imad_utils::colwise_subtract(bot, means2);
         /* top and bot are now zero-mean matrices. Mads must be row-major for
          * output purposes later on. */
-        MatrixXf mads = top.transpose() * A - bot.transpose() * B;
+        MatrixXd mads = top.transpose() * A - bot.transpose() * B;
         imad_utils::rowwise_divide(mads,sigMADs);
         //Take columnwise sum of squares, result is (1 x nBands) row vector
-        RowVectorXf chisqr = mads.array().square().colwise().sum().matrix();
-        RowVectorXf tmp(1,bandnums.size()); //Pass this into getWeights()
-        RowVectorXf weights = one - imad_utils::getWeights(chisqr, tmp, bandnums);
+        VectorXd chisqr = mads.array().square().rowwise().sum().matrix();
+        VectorXd tmp(ncol,1); //Pass this into getWeights()
+        VectorXd weights = imad_utils::getWeights(chisqr, tmp, nBands);
         cpm.update(tileMat.data(), weights.data(), ncol, 2*nBands);
       }
       else{
@@ -125,27 +125,27 @@ void imad(std::string filename1="", std::string filename2="",
       }
     }
     std::cout<< "Done updating!" << std::endl;
-    MatrixXf S = cpm.get_covar();
-    VectorXf means = cpm.get_means();
-    MatrixXf s11 = S.block(0,0,nBands,nBands);           //Upper left
-    MatrixXf s12 = S.block(0,nBands,nBands,nBands);      //Upper right
-    MatrixXf s21 = S.block(nBands,0,nBands,nBands);      //Lower left
-    MatrixXf s22 = S.block(nBands,nBands,nBands,nBands); //Lower right
-    MatrixXf b1  = s11;
-    MatrixXf c1  = s12 * s22.inverse() * s21;
-    MatrixXf b2  = s22;
-    MatrixXf c2  = s21 * s11.inverse() * s22;
+    MatrixXd S = cpm.get_covar();
+    VectorXd means = cpm.get_means();
+    MatrixXd s11 = S.block(0,0,nBands,nBands);           //Upper left
+    MatrixXd s12 = S.block(0,nBands,nBands,nBands);      //Upper right
+    MatrixXd s21 = S.block(nBands,0,nBands,nBands);      //Lower left
+    MatrixXd s22 = S.block(nBands,nBands,nBands,nBands); //Lower right
+    MatrixXd b1  = s11;
+    MatrixXd c1  = s12 * s22.inverse() * s21;
+    MatrixXd b2  = s22;
+    MatrixXd c2  = s21 * s11.inverse() * s22;
 
     //Solve the eigenproblem
-    VectorXf mu2, mu;
+    VectorXd mu2, mu;
     if(nBands == 1){
       mu2(0) = c1(0,0)/b1(0,0);
       A(0,0) = 1 / sqrt(b1(0,0));
       B(0,0) = 1 / sqrt(b2(0,0));
     }
     else{
-      Eigen::GeneralizedSelfAdjointEigenSolver<MatrixXf> solver1(c1,b1);
-      Eigen::GeneralizedSelfAdjointEigenSolver<MatrixXf> solver2(c2,b2);
+      Eigen::GeneralizedSelfAdjointEigenSolver<MatrixXd> solver1(c1,b1);
+      Eigen::GeneralizedSelfAdjointEigenSolver<MatrixXd> solver2(c2,b2);
       if (solver1.info() != Eigen::Success || solver2.info() != Eigen::Success){
         throw std::runtime_error("Eigensolver did not converge!");
       }
@@ -167,21 +167,21 @@ void imad(std::string filename1="", std::string filename2="",
 
       //Calculate the variances of the eigenvectors (Var(e1), Var(e2), etc.)
       //Note that in Python, these are row vectors, while they are column in C
-      VectorXf eigvarA = (A * A.transpose()).diagonal();
-      VectorXf eigvarB = (B * B.transpose()).diagonal();
+      VectorXd eigvarA = (A * A.transpose()).diagonal();
+      VectorXd eigvarB = (B * B.transpose()).diagonal();
 
       /* Calculate the penalized MAD significances. If you do not understand the
        * math, try mentally setting pen to zero and then matching this with the
        * equations from DOI:10.1016/j.rse.2003.10.024. The Greek variable names
        * have been chosen to line up with the variable names in that paper. */
 
-      VectorXf sigma = ((two - pen*(eigvarA + eigvarB)) / (1 - pen) - 2 * mu);
+      VectorXd sigma = ((two - pen*(eigvarA + eigvarB)) / (1 - pen) - 2 * mu);
 
       //A lot of nasty dancing between array and matrix types
-      VectorXf rho = (
+      VectorXd rho = (
         mu.array() * (1 - pen)                                       //numerator
                    /                                                 //---------
-        ((one - pen*eigvarA).array() * (one - pen*eigvarB).array()).sqrt()  //denominator
+((one - pen*eigvarA).array() * (one - pen*eigvarB).array()).sqrt()  //denominator
                      ).matrix();
 
       delta = (rho - oldrho).maxCoeff(); //The max of diffs between correltaions
@@ -202,14 +202,14 @@ void imad(std::string filename1="", std::string filename2="",
 
    //You are not expected to understand these lines. I certainly don't.
 
-/* 1 */ MatrixXf D = s11.diagonal().array()      //Bookkeeping
+/* 1 */ MatrixXd D = s11.diagonal().array()      //Bookkeeping
                         .sqrt().cwiseInverse()   //Inverse sqrt
                         .matrix().asDiagonal();  //More bookkeeping
-/* 2 */ VectorXf s = (D*s11*A).rowwise().sum();
-        VectorXf tmp1 = (s.array() / (s.array().abs())).matrix();
+/* 2 */ VectorXd s = (D*s11*A).rowwise().sum();
+        VectorXd tmp1 = (s.array() / (s.array().abs())).matrix();
 /* 3 */ imad_utils::colwise_multiply(A, tmp1);
-/* 4 */ VectorXf cov = (A.transpose() * s12 * B).diagonal();
-/* 5 */ MatrixXf tmp2 = (cov.array() / cov.array().abs()).matrix().asDiagonal();
+/* 4 */ VectorXd cov = (A.transpose() * s12 * B).diagonal();
+/* 5 */ MatrixXd tmp2 = (cov.array() / cov.array().abs()).matrix().asDiagonal();
         B = B * tmp2;
 
     }
@@ -220,7 +220,7 @@ void imad(std::string filename1="", std::string filename2="",
 
   GDALDriver* outdriver=GetGDALDriverManager()->GetDriverByName(format.c_str());
   GDALDataset *outfile = outdriver->Create(output_file.c_str(),ncol,nrow,
-                                           nBands + 1, GDT_Float32, NULL);
+                                           nBands + 1, GDT_Float64, NULL);
   const char* projection = file1->GetProjectionRef();
   double* geotransform   = new double[6];
   file1->GetGeoTransform(geotransform);
@@ -232,27 +232,27 @@ void imad(std::string filename1="", std::string filename2="",
 
   std::vector<GDALRasterBand*> outbands  = std::vector<GDALRasterBand*>(nBands);
   for(int i = 0; i <= nBands; i++){
-    outbands[i] = outfile->GetRasterBand(i);
+    outbands[i] = outfile->GetRasterBand(i+1);
   }
 
   for(int i = 0; i < nrow; i++){
     for(int k = 0; k < nBands; k++){
       bands_1[k]->RasterIO(GF_Read, xoffset, yoffset, ncol, 1,
                            &tile[k * ncol], ncol, 1,
-                           GDT_Float32, 0,0 );
+                           GDT_Float64, 0,0 );
       bands_1[k]->RasterIO(GF_Read, xoffset, yoffset, ncol, 1,
                            &tile[(k + nBands) * ncol], ncol, 1,
-                           GDT_Float32, 0,0 );
+                           GDT_Float64, 0,0 );
     }
     //Copied without comment from the iter>0 section above
-    MapRMMatrixXf top(tile, nBands, ncol);
-    MapRMMatrixXf bot(tile + nBands*ncol, nBands, ncol);
+    MapRMMatrixXd top(tile, nBands, ncol);
+    MapRMMatrixXd bot(tile + nBands*ncol, nBands, ncol);
     imad_utils::colwise_subtract(top, means1);
     imad_utils::colwise_subtract(bot, means2);
-    MatrixXf mads = top.transpose() * A - bot.transpose() * B;
+    MatrixXd mads = top.transpose() * A - bot.transpose() * B;
     imad_utils::rowwise_divide(mads,sigMADs);
-    RowVectorXf chisqr = mads.array().square().colwise().sum().matrix();
-    for(int k = 0; k < nBands; k++){
+    RowVectorXd chisqr = mads.array().square().colwise().sum().matrix();
+    for(int k = 1; k < nBands; k++){
       size_t index = mads.rows() * k;
       outbands[k]->RasterIO(GF_Write, xoffset, yoffset, ncol, 1,
                            mads.data() + index, ncol, 1,
@@ -266,6 +266,7 @@ void imad(std::string filename1="", std::string filename2="",
   GDALClose( (GDALDatasetH) file2 );
   GDALClose( (GDALDatasetH) outfile);
   delete &bandnums;
+  delete[] geotransform;
   delete[] tile;
 }
 

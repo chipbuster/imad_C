@@ -1,6 +1,6 @@
 #include "imad.h"
 
-//typedef Map<Matrix<float,Dynamic,Dynamic,RowMajor> > MapRMMatrixXf;
+//typedef Map<Matrix<float,Dynamic,Dynamic,RowMajor> > MapRMMatrixXd;
 //defined in imad.h
 
 using std::cout; //debugging purposes
@@ -8,23 +8,28 @@ using std::endl;
 
 ImageStats::ImageStats(size_t input){
     n2Bands = input;
-    means = VectorXf(n2Bands);
-    covar = MatrixXf(n2Bands,n2Bands);
+    means = VectorXd(n2Bands);
+    covar = MatrixXd(n2Bands,n2Bands);
     means.setZero(n2Bands);
     covar.setZero(n2Bands,n2Bands);
     sum_weights = 0.0;
 }
 
-VectorXf ImageStats::get_means(){
+ImageStats::~ImageStats(){
+  means.resize(0);
+  covar.resize(0,0);
+}
+
+VectorXd ImageStats::get_means(){
   return means;
 }
 
-MatrixXf ImageStats::get_covar(){
+MatrixXd ImageStats::get_covar(){
+  if(covar == MatrixXd::Zero(n2Bands,n2Bands)){
+    throw std::runtime_error("ImageStats has not found any data values!");
+  }
   covar = (covar.array() / (sum_weights - 1.0)).matrix();
-  MatrixXf diagonal = covar.diagonal().asDiagonal();
-  cout << covar << endl;
-  cout << "^^ covar ||||  vv mirrored" << endl;
-  cout <<  covar + covar.transpose() - diagonal << endl;
+  MatrixXd diagonal = covar.diagonal().asDiagonal();
   return covar + covar.transpose() - diagonal;
 }
 
@@ -36,8 +41,8 @@ void ImageStats::zero(){
 
 //TODO: Separate updates for mean and covar?
 
-void ImageStats::update(float* input,
-                        float* weights, int nrow, int ncol){
+void ImageStats::update(double* input,
+                        double* weights, int nrow, int ncol){
 
   double weight, ratio;
   double* diff = new double[nrow]; //Difference between element and mean
@@ -70,8 +75,6 @@ void ImageStats::update(float* input,
     for(int b1 = 0; b1 < ncol; b1++){
       for(int b2 = b1; b2 < ncol; b2++){
         covar(b1,b2) += diff[b1] * diff[b2] * (1-ratio) * weight;
-        if(b1 == b2){
-        }
       }
     }
   }

@@ -73,60 +73,6 @@ namespace GdalFileIO{
       return bands;
     }
 
-    /*************************************************************************/
-
-    CoordTransform::CoordTransform(double* transform_coeff){
-      //Notes can be found in the header file. Construct affine transform matrix
-      Img2Geo(0,2) = transform_coeff[0];
-      Img2Geo(1,2) = transform_coeff[3];
-      Img2Geo(0,0) = transform_coeff[1];
-      Img2Geo(0,1) = transform_coeff[2];
-      Img2Geo(1,0) = transform_coeff[4];
-      Img2Geo(1,1) = transform_coeff[5];
-      Img2Geo(2,0) = 0;
-      Img2Geo(2,1) = 0;
-      Img2Geo(2,2) = 1;
-      Geo2Img = Img2Geo.inverse();
-
-      //Last element of affine transform vectors is always 1
-      input(2) = 1;
-    }
-
-    double CoordTransform::ImgtoGeo_X(double imgP, double imgL){
-      input(0) = imgP;
-      input(1) = imgL;
-      input(2) = 1;
-      output = Img2Geo * input;
-      return output(0);
-    }
-    double CoordTransform::ImgtoGeo_Y(double imgP, double imgL){
-      input(0) = imgP;
-      input(1) = imgL;
-      output = Img2Geo * input;
-      return output(1);
-    }
-    double CoordTransform::GeotoImg_X(double geoX, double geoY){
-      input(0) = geoX;
-      input(1) = geoY;
-      output = Geo2Img * input;
-      return round(output(0));
-    }
-    double CoordTransform::GeotoImg_Y(double geoX, double geoY){
-      input(0) = geoX;
-      input(1) = geoY;
-      output = Geo2Img * input;
-      return round(output(1));
-    }
-    void CoordTransform::GeotoImg(double& X, double& Y){
-      double tmpX = GeotoImg_X(X,Y);
-      double tmpY = GeotoImg_Y(X,Y);
-      X = tmpX; Y = tmpY;
-    }
-    void CoordTransform::ImgtoGeo(double& X, double& Y){
-      double tmpX = ImgtoGeo_X(X,Y);
-      double tmpY = ImgtoGeo_Y(X,Y);
-      X = tmpX; Y = tmpY;
-    }
 
     /*************************************************************************/
 }

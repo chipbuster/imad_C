@@ -5,11 +5,15 @@
 #include <algorithm>
 #include <vector>
 #include <limits>
+#include <assert.h>
 #include <boost/math/distributions/chi_squared.hpp>
 #include <boost/math/distributions.hpp> //for cdf()
 
-//typedef Map<Matrix<float,Dynamic,Dynamic,RowMajor> > MapRMMatrixXf;
+//typedef Map<Matrix<double,Dynamic,Dynamic,RowMajor> > MapRMMatrixXd;
 //defined in imad.h
+
+using std::cout;
+using std::endl;
 
 namespace imad_utils{
 
@@ -18,7 +22,7 @@ namespace imad_utils{
    * descending order and then reorders the eigenvectors appropriately */
   //NOTE: This function is probably super inefficient --K.Song, 2014-7-14
 
-  void reorder_eigens(VectorXf& lambda, MatrixXf& A, MatrixXf& B){
+  void reorder_eigens(VectorXd& lambda, MatrixXd& A, MatrixXd& B){
     //TODO: Rewrite function in accord with structures using eigen structs
 
     int N = lambda.rows();
@@ -54,11 +58,8 @@ namespace imad_utils{
    * lot more efficient than the Python solution (repeat the vector as many
    * times as necessary to get a matrix, then do matrix subtraction) */
 
-  void colwise_subtract(MapRMMatrixXf& A, VectorXf& toSubtract){
-    if(A.rows() != toSubtract.rows()){
-      throw std::invalid_argument("Matrix and vector must have same number of rows!");
-    }
-
+  void colwise_subtract(MapRMMatrixXd& A, VectorXd& toSubtract){
+    assert(A.rows() == toSubtract.rows());
     for(int i = 0; i < A.cols(); i++){
       A.col(i) = A.col(i) - toSubtract;
     }
@@ -67,19 +68,15 @@ namespace imad_utils{
   /* Takes a matrix and a vector and does an element-wise division.
    * NOTE: toDivide is still a column vector, we just treat it as a row*/
 
-  void rowwise_divide(MatrixXf& A, VectorXf& toDivide){
-     if(A.cols() != toDivide.rows()){
-       throw std::invalid_argument("Matrix ncol must be same as vector length!");
-     }
+  void rowwise_divide(MatrixXd& A, VectorXd& toDivide){
+     assert(A.cols() == toDivide.rows());
      for(int i = 0; i < A.rows(); i++){
        A.row(i) = (A.row(i).array() / toDivide.transpose().array()).matrix();
      }
   }
 
-  void colwise_multiply(MatrixXf& A, VectorXf& toMult){
-    if(A.rows() != toMult.rows()){
-      throw std::invalid_argument("Matrix ncol must be same as vector length!");
-    }
+  void colwise_multiply(MatrixXd& A, VectorXd& toMult){
+    assert(A.rows() == toMult.rows());
     for(int i = 0; i < A.cols(); i++){
       A.col(i) = (A.col(i).array() * toMult.array()).matrix();
     }
@@ -91,15 +88,11 @@ namespace imad_utils{
    * backwards compared to Python (in python, param to chi2.cdf is second arg)
    * so [C++] cdf(rng(a), b) = stats.chi2.cdf(b,a) [Python] */
 
-  RowVectorXf& getWeights(RowVectorXf& input, RowVectorXf& output, std::vector<int>& bands){
-    if(input.cols() != (int)bands.size()){
-      throw std::invalid_argument("Must have same number of inputs as bands!");
-    }
-    for(size_t i = 0; i < bands.size(); i++){
-      std::cout << bands[i] << std::endl;
-      boost::math::chi_squared_distribution<double> rng(bands[i]);
-      double tmpout = cdf(rng, input(i));
-      output(i) = tmpout;
+  VectorXd& getWeights(VectorXd& input, VectorXd& output, size_t num_bands){
+    assert(input.rows() == output.rows());
+    boost::math::chi_squared dist(num_bands);
+    for(int i = 0; i < input.rows(); i++){
+      output(i) = 1 - boost::math::cdf(dist, input(i));
     }
     return output;
   }
@@ -113,7 +106,7 @@ namespace imad_utils{
 
   int find_chunksize(int& buffersize, int ncol, int nBands){
     const int max_memory_in_bytes = 1000000000; //1GB
-    const int max_bufsize = max_memory_in_bytes / ncol / nBands / sizeof(float);
+    const int max_bufsize = max_memory_in_bytes / ncol / nBands / sizeof(double);
 
     if(ncol < max_bufsize){
       buffersize = ncol;
@@ -127,16 +120,15 @@ namespace imad_utils{
         }
       }
     }
-    throw std::invalid_argument("Image is too large to chunk...what the hell do you have?");
+    throw std::invalid_argument("find_chunksize: Image is too large to chunk...what the hell do you have?");
   }
-
 
   /*************************************************************************/
   bool Eigentup::operator< (Eigentup const &other) const{
     return (eigenval < other.eigenval);
   }
 
-  Eigentup::Eigentup(double val, VectorXf vec_a, VectorXf vec_b){
+  Eigentup::Eigentup(double val, VectorXd vec_a, VectorXd vec_b){
     eigenval = val;
     eigenvec_a = vec_a;
     eigenvec_b = vec_b;
