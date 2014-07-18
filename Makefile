@@ -1,6 +1,6 @@
 CC=g++
 LD=g++
-CCFLAGS=-O2 -g -p -c -Wall -I/usr/include/eigen3
+CCFLAGS= -O3 -g -p -c -Wall -I/usr/include/eigen3
 LDFLAGS=-g -p -lgdal -lm
 
 

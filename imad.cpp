@@ -10,6 +10,8 @@
 inline int max(int a, int b){  return a > b ? a : b; }
 
 using namespace Eigen;
+using std::cout; //debugging purposes
+using std::endl;
 
 //typedef Map<Matrix<float,Dynamic,Dynamic,RowMajor> > MapRMMatrixXf;
 //defined in imad.h
@@ -30,7 +32,7 @@ void imad(std::string filename1="", std::string filename2="",
   //Temporary hardcoding of values. Eventually, will be user-specified
   int xoffset = 0;
   int yoffset = 0;
-  int maxiter = 1;
+  int maxiter = 10;
   double tolerance = 0.001;
   double pen = 0.0; //penalty
 
@@ -51,10 +53,10 @@ void imad(std::string filename1="", std::string filename2="",
   }
 
   if(output_file.empty()){
-    std::cout << "Valid formats: GTiff, PCIDSK, HFA, ENVI" << std::endl;
-    std::cout << "Please enter output format: ";
+    std::cout<< "Valid formats: GTiff, PCIDSK, HFA, ENVI" << std::endl;
+    std::cout<< "Please enter output format: ";
     getline(std::cin, format);
-    std::cout << "Please enter output file name";
+    std::cout<< "Please enter output file name";
     getline(std::cin, output_file);
   }
 
@@ -71,12 +73,12 @@ void imad(std::string filename1="", std::string filename2="",
   int nb_pr = find_chunksize(bufsize, ncol, nBands);
 */
   float* tile = new float[2 * nBands * ncol];
-  std::cout << "Image is " << nrow << " by " << ncol << std::endl;
+  std::cout<< "Image is " << nrow << " by " << ncol << std::endl;
 
   ImageStats cpm = ImageStats(nBands * 2);
   double delta = 1.0;
   VectorXf rho, oldrho = VectorXf::Zero(nBands);
-  MatrixXf A, B, cov;
+  MatrixXf A, B;
   VectorXf  sigMADs, means1, means2;
   //Declare two special vectors for calculations later on
   const VectorXf two = VectorXf::Constant(nBands, 2); //col vector of all "2"
@@ -85,16 +87,16 @@ void imad(std::string filename1="", std::string filename2="",
   /* Start calculations (note double conditional in for-loop: we will continue
    * until the delta is smaller than the tolerance or to maxiter iterations) */
   for(int iter = 0; iter < maxiter && delta > tolerance; iter++){
-    std::cout << "Mainloop start!" << std::endl;
+    std::cout<< "Mainloop start!" << std::endl;
     for(int row = 0; row < nrow; row++){
-      std::cout << "Row " << row << " of " << nrow << std::endl;
+      std::cout<< "Row " << row << " of " << nrow << std::endl;
       for(int k = 0; k < nBands; k++){
         //Read into the appropriate location in tile.
         //The Python code for this might be easier to understand.
-        bands_1[k]->RasterIO(GF_Read, xoffset, yoffset, ncol, 1,
+        bands_1[k]->RasterIO(GF_Read, xoffset, yoffset + row, ncol, 1,
                              &tile[k], ncol, 1,
                              GDT_Float32, sizeof(float)*(nBands*2), 0);
-        bands_2[k]->RasterIO(GF_Read, xoffset, yoffset, ncol, 1,
+        bands_2[k]->RasterIO(GF_Read, xoffset, yoffset + row, ncol, 1,
                              &tile[k + nBands], ncol, 1,
                              GDT_Float32, sizeof(float)*(nBands*2), 0);
       }
@@ -122,7 +124,7 @@ void imad(std::string filename1="", std::string filename2="",
         cpm.update(tile, NULL, ncol, 2*nBands);
       }
     }
-    std::cout << "Done updating!" << std::endl;
+    std::cout<< "Done updating!" << std::endl;
     MatrixXf S = cpm.get_covar();
     VectorXf means = cpm.get_means();
     MatrixXf s11 = S.block(0,0,nBands,nBands);           //Upper left
@@ -133,8 +135,6 @@ void imad(std::string filename1="", std::string filename2="",
     MatrixXf c1  = s12 * s22.inverse() * s21;
     MatrixXf b2  = s22;
     MatrixXf c2  = s21 * s11.inverse() * s22;
-
-    std::cout << "C1" << c1 << std::endl;
 
     //Solve the eigenproblem
     VectorXf mu2, mu;
@@ -154,7 +154,7 @@ void imad(std::string filename1="", std::string filename2="",
       B = solver2.eigenvectors();
     }
 
-    std::cout << "Eigens solved!" << std::endl;
+    std::cout<< "Eigens solved!" << std::endl;
 
       /* We now need to sort the eigenvalues by their eigenvectors and return.
        * This is handled by a utility function. At the end of the function,
@@ -181,7 +181,7 @@ void imad(std::string filename1="", std::string filename2="",
       VectorXf rho = (
         mu.array() * (1 - pen)                                       //numerator
                    /                                                 //---------
-        ((one - pen*eigvarA) * (one - pen*eigvarB)).array().sqrt()  //denominator
+        ((one - pen*eigvarA).array() * (one - pen*eigvarB).array()).sqrt()  //denominator
                      ).matrix();
 
       delta = (rho - oldrho).maxCoeff(); //The max of diffs between correltaions
@@ -205,10 +205,12 @@ void imad(std::string filename1="", std::string filename2="",
 /* 1 */ MatrixXf D = s11.diagonal().array()      //Bookkeeping
                         .sqrt().cwiseInverse()   //Inverse sqrt
                         .matrix().asDiagonal();  //More bookkeeping
-/* 2 */ MatrixXf s = (D*s11*A).colwise().sum();
-/* 3 */ A = A * (s.array()/s.array().abs()).matrix();
-/* 4 */ cov = (A.transpose() * s12 * B).diagonal();
-/* 5 */ B = B * (cov.array() / cov.array().abs()).matrix().asDiagonal();
+/* 2 */ VectorXf s = (D*s11*A).rowwise().sum();
+        VectorXf tmp1 = (s.array() / (s.array().abs())).matrix();
+/* 3 */ imad_utils::colwise_multiply(A, tmp1);
+/* 4 */ VectorXf cov = (A.transpose() * s12 * B).diagonal();
+/* 5 */ MatrixXf tmp2 = (cov.array() / cov.array().abs()).matrix().asDiagonal();
+        B = B * tmp2;
 
     }
 

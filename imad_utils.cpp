@@ -68,14 +68,21 @@ namespace imad_utils{
    * NOTE: toDivide is still a column vector, we just treat it as a row*/
 
   void rowwise_divide(MatrixXf& A, VectorXf& toDivide){
-
-
      if(A.cols() != toDivide.rows()){
        throw std::invalid_argument("Matrix ncol must be same as vector length!");
      }
      for(int i = 0; i < A.rows(); i++){
        A.row(i) = (A.row(i).array() / toDivide.transpose().array()).matrix();
      }
+  }
+
+  void colwise_multiply(MatrixXf& A, VectorXf& toMult){
+    if(A.rows() != toMult.rows()){
+      throw std::invalid_argument("Matrix ncol must be same as vector length!");
+    }
+    for(int i = 0; i < A.cols(); i++){
+      A.col(i) = (A.col(i).array() * toMult.array()).matrix();
+    }
   }
 
   /*************************************************************************/
@@ -89,6 +96,7 @@ namespace imad_utils{
       throw std::invalid_argument("Must have same number of inputs as bands!");
     }
     for(size_t i = 0; i < bands.size(); i++){
+      std::cout << bands[i] << std::endl;
       boost::math::chi_squared_distribution<double> rng(bands[i]);
       double tmpout = cdf(rng, input(i));
       output(i) = tmpout;

@@ -71,6 +71,7 @@ namespace imad_utils{
   void reorder_eigens(VectorXf& lambda, MatrixXf& A, MatrixXf& B);
   void colwise_subtract(MapRMMatrixXf& A, VectorXf& toSubtract);
   void rowwise_divide(MatrixXf& A, VectorXf& toDivide);
+  void colwise_multiply(MatrixXf& A, VectorXf& toMult);
   RowVectorXf& getWeights(RowVectorXf& inputs, RowVectorXf& outputs, std::vector<int>& bands);
 }
 

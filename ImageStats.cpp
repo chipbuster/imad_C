@@ -10,6 +10,8 @@ ImageStats::ImageStats(size_t input){
     n2Bands = input;
     means = VectorXf(n2Bands);
     covar = MatrixXf(n2Bands,n2Bands);
+    means.setZero(n2Bands);
+    covar.setZero(n2Bands,n2Bands);
     sum_weights = 0.0;
 }
 
@@ -18,13 +20,11 @@ VectorXf ImageStats::get_means(){
 }
 
 MatrixXf ImageStats::get_covar(){
-  cout << "covar" << endl;
-  cout << covar << endl;
-  cout << "sum_weights " << sum_weights << endl;
   covar = (covar.array() / (sum_weights - 1.0)).matrix();
-  cout << "covar" << endl;
-  cout << covar << endl;
   MatrixXf diagonal = covar.diagonal().asDiagonal();
+  cout << covar << endl;
+  cout << "^^ covar ||||  vv mirrored" << endl;
+  cout <<  covar + covar.transpose() - diagonal << endl;
   return covar + covar.transpose() - diagonal;
 }
 
@@ -44,9 +44,21 @@ void ImageStats::update(float* input,
 
   for(int row = 0; row < nrow; row++ ){
     //If no weights, weight defaults to 1
+    /* Check for NODATA values. If any of the values are nodata, we increment
+     * the row counter to skip that pixel. Note that this means that the outer
+     * loop is NOT guaranteed to run nrow times---rows may be skipped here.*/
+    bool has_nodata = false;
+    for(int i = 0 ; i < ncol; i++){
+      if(input[i + ncol * row] == -9999) has_nodata = true;
+      break;
+    }
+    if(has_nodata) continue;
+
     weight = weights == NULL ? 1 : weights[row];
     sum_weights += weight;
     ratio = weight / sum_weights;
+
+
 
     //Calculate mean of band via provisional means algorithm
     for(int band = 0; band < ncol; band++){
@@ -57,11 +69,12 @@ void ImageStats::update(float* input,
      * B2 is the entry for band 1, b2 is the entry for band 2. */
     for(int b1 = 0; b1 < ncol; b1++){
       for(int b2 = b1; b2 < ncol; b2++){
-        covar(b1,b2) = diff[b1] * diff[b2] * (1-ratio) * weight;
+        covar(b1,b2) += diff[b1] * diff[b2] * (1-ratio) * weight;
+        if(b1 == b2){
+        }
       }
     }
   }
-
   delete[] diff;
 }
 
