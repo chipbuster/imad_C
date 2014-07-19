@@ -79,7 +79,6 @@ void ImageStats::update(double* input,
     }
   }
   delete[] diff;
-  cout << "SW: " << sum_weights << endl;
 }
 
 /* Python stores an image row in a column, with different bands in

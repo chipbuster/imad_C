@@ -38,13 +38,8 @@ void imad(std::string filename1="", std::string filename2="",
 
   /* selectBands() gets a series of bands from the user. For example, for
   a LandSat7 image, the vector might return [1,2,3,4,5,7] */
-  // std::vector<int>& bandnums = *GdalFileIO::selectBands();
-  // int nBands = bandnums.size();
-  std::vector<int>& bandnums = *(new std::vector<int>());
-  bandnums.push_back(1);
-  bandnums.push_back(2);
-  bandnums.push_back(3);
-  int nBands = 3;
+  std::vector<int>& bandnums = *GdalFileIO::selectBands();
+  int nBands = bandnums.size();
 
   std::vector<GDALRasterBand*> bands_1  = std::vector<GDALRasterBand*>(nBands);
   std::vector<GDALRasterBand*> bands_2  = std::vector<GDALRasterBand*>(nBands);
@@ -255,7 +250,6 @@ void imad(std::string filename1="", std::string filename2="",
     MatrixRXd top = tileMat.block(0,0,ncol,nBands);
     MatrixRXd bot = tileMat.block(0,nBands,ncol,nBands);
     MatrixXd mads = (top * A) - (bot * B);
-
     for(int k = 1; k < nBands; k++){
       outbands[k]->RasterIO(GF_Write, xoffset, yoffset + row, ncol, 1,
                            &(mads.data()[k*ncol]), ncol, 1,
