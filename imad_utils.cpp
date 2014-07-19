@@ -37,7 +37,6 @@ namespace imad_utils{
     }
     //Sort in order and reverse. Should probably fix this later.
     std::sort(pairs.begin(), pairs.end());
-    std::reverse(pairs.begin(), pairs.end());
 
     /* Now populate the original matrix and eigenvalue vector. Eigenvectors
      * are stored in columns, so this may be backwards compared to what
@@ -58,10 +57,13 @@ namespace imad_utils{
    * lot more efficient than the Python solution (repeat the vector as many
    * times as necessary to get a matrix, then do matrix subtraction) */
 
-  void colwise_subtract(MapRMMatrixXd& A, VectorXd& toSubtract){
-    assert(A.rows() == toSubtract.rows());
-    for(int i = 0; i < A.cols(); i++){
-      A.col(i) = A.col(i) - toSubtract;
+  void rowwise_subtract(MatrixRXd& A, VectorXd& toSubtract1,
+                        MatrixRXd& B, VectorXd& toSubtract2){
+    assert(A.cols() == toSubtract1.rows());
+    assert(B.cols() == toSubtract2.rows());
+    for(int i = 0; i < A.rows(); i++){
+      A.row(i) = A.row(i) - toSubtract1.transpose();
+      B.row(i) = B.row(i) - toSubtract2.transpose();
     }
   }
 

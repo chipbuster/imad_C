@@ -26,14 +26,14 @@ VectorXd ImageStats::get_means(){
 
 MatrixXd ImageStats::get_covar(){
   if(covar == MatrixXd::Zero(n2Bands,n2Bands)){
-    throw std::runtime_error("ImageStats has not found any data values!");
+  //  throw std::runtime_error("ImageStats has not found any data values!");
   }
-  covar = (covar.array() / (sum_weights - 1.0)).matrix();
+  covar = (covar / (sum_weights - 1.0));
   MatrixXd diagonal = covar.diagonal().asDiagonal();
   return covar + covar.transpose() - diagonal;
 }
 
-void ImageStats::zero(){
+void ImageStats::reset(){
   means.setZero(n2Bands);
   covar.setZero(n2Bands,n2Bands);
   sum_weights = 0.0;
@@ -54,16 +54,16 @@ void ImageStats::update(double* input,
      * loop is NOT guaranteed to run nrow times---rows may be skipped here.*/
     bool has_nodata = false;
     for(int i = 0 ; i < ncol; i++){
-      if(input[i + ncol * row] == -9999) has_nodata = true;
-      break;
+      if(input[i + ncol * row] == -9999){
+        has_nodata = true;
+        break;
+      }
     }
     if(has_nodata) continue;
 
     weight = weights == NULL ? 1 : weights[row];
     sum_weights += weight;
     ratio = weight / sum_weights;
-
-
 
     //Calculate mean of band via provisional means algorithm
     for(int band = 0; band < ncol; band++){
@@ -74,11 +74,12 @@ void ImageStats::update(double* input,
      * B2 is the entry for band 1, b2 is the entry for band 2. */
     for(int b1 = 0; b1 < ncol; b1++){
       for(int b2 = b1; b2 < ncol; b2++){
-        covar(b1,b2) += diff[b1] * diff[b2] * (1-ratio) * weight;
+        covar(b2,b1) += diff[b1] * diff[b2] * (1-ratio) * weight;
       }
     }
   }
   delete[] diff;
+  cout << "SW: " << sum_weights << endl;
 }
 
 /* Python stores an image row in a column, with different bands in

@@ -25,7 +25,8 @@ ImageStats.o: ImageStats.cpp
 debug: imad
 	gdb imad
 
-profile:
+test: all
+	./imad
 
 
 clean:

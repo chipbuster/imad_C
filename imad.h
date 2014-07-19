@@ -18,6 +18,7 @@ using namespace Eigen;
  * GdalFileIO are implemented in GdalFileIO.cpp. */
 
 typedef Map<Matrix<double,Dynamic,Dynamic,RowMajor> > MapRMMatrixXd;
+typedef Matrix<double,Dynamic,Dynamic,RowMajor> MatrixRXd;
 
 namespace GdalFileIO{
 
@@ -39,7 +40,8 @@ namespace imad_utils{
   };
 
   void reorder_eigens(VectorXd& lambda, MatrixXd& A, MatrixXd& B);
-  void colwise_subtract(MapRMMatrixXd& A, VectorXd& toSubtract);
+  void rowwise_subtract(MatrixRXd& A, VectorXd& toSubtract1,
+                        MatrixRXd& B, VectorXd& toSubtract2);
   void rowwise_divide(MatrixXd& A, VectorXd& toDivide);
   void colwise_multiply(MatrixXd& A, VectorXd& toMult);
   VectorXd& getWeights(VectorXd& inputs, VectorXd& outputs, size_t num_bands);
@@ -97,7 +99,7 @@ class ImageStats{
   VectorXd get_means();
   MatrixXd get_covar();
 
-  void zero();
+  void reset();
   void update(double* input, double* weights, int nrow, int ncol);
 };
 
