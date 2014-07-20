@@ -32,9 +32,7 @@ namespace GdalFileIO{
     /*************************************************************************/
 
     bool dimensionsmatch(GDALDataset* dataset1, GDALDataset* dataset2){
-      geo_utils::ImageInfo info1 = geo_utils::ImageInfo(dataset1);
-      geo_utils::ImageInfo info2 = geo_utils::ImageInfo(dataset2);
-      return info1.compatible(info2);
+      return geo_utils::ImageInfo(dataset1).compatible(geo_utils::ImageInfo(dataset2));
     }
 
     /*************************************************************************/

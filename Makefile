@@ -4,8 +4,8 @@ CCFLAGS= -O3 -g -p -c -Wall -I/usr/include/eigen3
 LDFLAGS=-g -p -lgdal -lm
 
 
-all: imad.o GdalFileIO.o imad_utils.o ImageStats.o geo_utils.o
-	$(CC) imad.o GdalFileIO.o imad_utils.o ImageStats.o $(LDFLAGS) -o imad
+all: imad.o GdalFileIO.o geo_utils.o imad_utils.o ImageStats.o geo_utils.o
+	$(CC) imad.o GdalFileIO.o imad_utils.o geo_utils.o ImageStats.o $(LDFLAGS) -o imad
 
 imad.o: imad.cpp
 	$(CC) $(CCFLAGS) imad.cpp -o imad.o

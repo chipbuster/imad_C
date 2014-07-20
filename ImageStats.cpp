@@ -26,7 +26,13 @@ VectorXd ImageStats::get_means(){
 
 MatrixXd ImageStats::get_covar(){
   if(covar == MatrixXd::Zero(n2Bands,n2Bands)){
-  //  throw std::runtime_error("ImageStats has not found any data values!");
+    cout << "Error: iMad was unable to find pixel values that had data in the "
+         << "region specified. If you are using automatic overlap detection, "
+         << "this probably means that the detected overlap area has no data. "
+         << "Please try selecting the overlapping region manually. Also, note "
+         << "that a single no-data value in any layer causes that pixel to be "
+         << "treated as no data in ALL the layers."
+    throw std::runtime_error("No data in the image region specified");
   }
   covar = (covar / (sum_weights - 1.0));
   MatrixXd diagonal = covar.diagonal().asDiagonal();

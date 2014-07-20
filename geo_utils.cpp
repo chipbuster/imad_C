@@ -125,20 +125,20 @@ namespace geo_utils{
      * Compatibility does not require that the geotransforms match, only that
      * the projections do. */
     if(other.ncol != ncol){
-      cout << "X-dimension mismatch in images. Exiting..." << endl;
+      std::cout<< "X-dimension mismatch in images. Exiting..." << std::endl;
       return false;
     }
     if(other.nrow != nrow){
-      cout << "Y-dimension mismatch in images. Exiting..." << endl;
+      std::cout<< "Y-dimension mismatch in images. Exiting..." << std::endl;
       return false;
     }
     if(other.nBands != nBands){
-      cout << "Raster count mismatch in images. Exiting..." << endl;
+      std::cout<< "Raster count mismatch in images. Exiting..." << std::endl;
       return false;
     }
     //If projections are not equal
     if(strcmp(other.projection,projection)){
-      cout << "Projections of files do not match. Exiting..." << endl;
+      std::cout<< "Projections of files do not match. Exiting..." << std::endl;
       return false;
     }
     return true;
