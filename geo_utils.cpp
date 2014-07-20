@@ -121,12 +121,25 @@ namespace geo_utils{
   }
 
   bool ImageInfo::compatible(const ImageInfo& other) const{
-    if( other.ncol != ncol ||
-        other.nrow != nrow ||
-        other.nBands != nBands
-      ) return false;
-    for(size_t i = 0; i < strlen(projection); i++){
-      if(other.projection[i] != projection[i]) return false;
+    /* Check that dimensions of the two files match in X, Y, and num. bands
+     * Compatibility does not require that the geotransforms match, only that
+     * the projections do. */
+    if(other.ncol != ncol){
+      cout << "X-dimension mismatch in images. Exiting..." << endl;
+      return false;
+    }
+    if(other.nrow != nrow){
+      cout << "Y-dimension mismatch in images. Exiting..." << endl;
+      return false;
+    }
+    if(other.nBands != nBands){
+      cout << "Raster count mismatch in images. Exiting..." << endl;
+      return false;
+    }
+    //If projections are not equal
+    if(strcmp(other.projection,projection)){
+      cout << "Projections of files do not match. Exiting..." << endl;
+      return false;
     }
     return true;
   }

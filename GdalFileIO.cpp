@@ -32,26 +32,9 @@ namespace GdalFileIO{
     /*************************************************************************/
 
     bool dimensionsmatch(GDALDataset* dataset1, GDALDataset* dataset2){
-      /* Check that dimensions of the two files match in X, Y, and num. bands */
-      if(dataset1->GetRasterXSize() != dataset2->GetRasterXSize()){
-        cout << "X-dimension mismatch in images. Exiting..." << endl;
-        return false;
-      }
-      if(dataset1->GetRasterYSize() != dataset2->GetRasterYSize()){
-        cout << "Y-dimension mismatch in images. Exiting..." << endl;
-        return false;
-      }
-      if(dataset1->GetRasterCount() != dataset2->GetRasterCount()){
-        cout << "Raster count mismatch in images. Exiting..." << endl;
-        return false;
-      }
-      //If projections are not equal
-      if(strcmp(dataset1->GetProjectionRef(),dataset2->GetProjectionRef())){
-        cout << "Projections of files do not match. Exiting..." << endl;
-        return false;
-      }
-      //All dimensions match!
-      return true;
+      geo_utils::ImageInfo info1 = geo_utils::ImageInfo(dataset1);
+      geo_utils::ImageInfo info2 = geo_utils::ImageInfo(dataset2);
+      return info1.compatible(info2);
     }
 
     /*************************************************************************/

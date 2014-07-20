@@ -172,9 +172,7 @@ void imad(std::string filename1="", std::string filename2="",
     imad_utils::math_cleanup(A,B,s11,s12);
 
     }
-
-  //FINISHED WITH THE COMPUTATION CODE! LET'S GO GET A DRINK!
-
+    
   //End iterations. Gear up to write final result to file.
 
   GDALDriver* outdriver=GetGDALDriverManager()->GetDriverByName(format.c_str());
