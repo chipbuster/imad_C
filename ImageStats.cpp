@@ -12,7 +12,7 @@ ImageStats::ImageStats(size_t input){
     covar = MatrixXd(n2Bands,n2Bands);
     means.setZero(n2Bands);
     covar.setZero(n2Bands,n2Bands);
-    sum_weights = 0.0;
+    sum_weights = 0.00001; //Not zero due to issues with div by zero
 }
 
 ImageStats::~ImageStats(){
@@ -36,7 +36,7 @@ MatrixXd ImageStats::get_covar(){
 void ImageStats::reset(){
   means.setZero(n2Bands);
   covar.setZero(n2Bands,n2Bands);
-  sum_weights = 0.0;
+  sum_weights = 0.00001;
 }
 
 //TODO: Separate updates for mean and covar?
@@ -62,6 +62,7 @@ void ImageStats::update(double* input,
     if(has_nodata) continue;
 
     weight = weights == NULL ? 1 : weights[row];
+    assert(weight >= 0);
     sum_weights += weight;
     ratio = weight / sum_weights;
 

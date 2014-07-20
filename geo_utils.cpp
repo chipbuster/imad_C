@@ -120,5 +120,16 @@ namespace geo_utils{
     return true;
   }
 
-  
+  bool ImageInfo::compatible(const ImageInfo& other) const{
+    if( other.ncol != ncol ||
+        other.nrow != nrow ||
+        other.nBands != nBands
+      ) return false;
+    for(size_t i = 0; i < strlen(projection); i++){
+      if(other.projection[i] != projection[i]) return false;
+    }
+    return true;
+  }
+
+
 }

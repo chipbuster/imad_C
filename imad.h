@@ -25,7 +25,14 @@ namespace GdalFileIO{
   GDALDataset* openFile(std::string filename);
   bool dimensionsmatch(GDALDataset* dataset1, GDALDataset* dataset2);
   std::vector<int>* selectBands();
-
+  void getOutputFileInfo(std::string& output_file, std::string& format);
+  void writeOutputToFile(GDALDataset* outfile, double* tile,
+                         MatrixXd& A, MatrixXd& B, //Eigenvector matrices
+                         int xoffset, int yoffset, int ncol, int nrow,
+                         std::vector<GDALRasterBand*>& bands_1,
+                         std::vector<GDALRasterBand*>& bands_2,
+                         GDALDataset* reference_file,
+                         VectorXd& sigMADs);
 }
 
 namespace imad_utils{
@@ -44,7 +51,11 @@ namespace imad_utils{
                         MatrixRXd& B, VectorXd& toSubtract2);
   void rowwise_divide(MatrixXd& A, VectorXd& toDivide);
   void colwise_multiply(MatrixXd& A, VectorXd& toMult);
-  VectorXd& getWeights(VectorXd& inputs, VectorXd& outputs, size_t num_bands);
+  void math_cleanup(MatrixXd& A, MatrixXd& B, MatrixXd& s11, MatrixXd& s12);
+  VectorXd& calc_weights(double* tile, VectorXd& weights, MatrixXd& A,
+                        MatrixXd &B, VectorXd& means1, VectorXd& means2,
+                        VectorXd sigMADs, int ncol, int nBands);
+
 }
 
 namespace geo_utils{
@@ -59,6 +70,7 @@ namespace geo_utils{
     ~ImageInfo();
 
     bool operator == (const ImageInfo& other) const;
+    bool compatible (const ImageInfo& other) const;
   };
 
   class CoordTransform{

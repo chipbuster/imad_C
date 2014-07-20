@@ -42,10 +42,11 @@ namespace imad_utils{
      * are stored in columns, so this may be backwards compared to what
      * you are used to seeing in C codes. */
     for(int i = 0; i < N; i++){
-      lambda(i) = pairs[i].eigenval;
+      bool neg_eig = (pairs[i].eigenval < 0);
+      lambda(i) = neg_eig ? (-1) * pairs[i].eigenval : pairs[i].eigenval;
       for(int j = 0; j < N; j++){
-        A(j,i) = pairs[i].eigenvec_a(j);
-        B(j,i) = pairs[i].eigenvec_b(j);
+        A(j,i) = neg_eig ? (-1) * pairs[i].eigenvec_a(j) : pairs[i].eigenvec_a(j);
+        B(j,i) = neg_eig ? (-1) * pairs[i].eigenvec_b(j) : pairs[i].eigenvec_b(j);
       }
     }
     return;
@@ -90,14 +91,26 @@ namespace imad_utils{
    * backwards compared to Python (in python, param to chi2.cdf is second arg)
    * so [C++] cdf(rng(a), b) = stats.chi2.cdf(b,a) [Python] */
 
-  VectorXd& getWeights(VectorXd& input, VectorXd& output, size_t num_bands){
-    assert(input.rows() == output.rows());
-    boost::math::chi_squared dist(num_bands);
-    for(int i = 0; i < input.rows(); i++){
-      output(i) = 1 - boost::math::cdf(dist, input(i));
-    }
-    return output;
-  }
+   VectorXd& calc_weights(double* tile, VectorXd& weights, MatrixXd& A,
+                         MatrixXd &B, VectorXd& means1, VectorXd& means2,
+                         VectorXd sigMADs, int ncol, int nBands){
+     MapRMMatrixXd tileMat(tile, ncol, 2*nBands);
+     MatrixRXd top = tileMat.block(0,0,ncol,nBands);
+     MatrixRXd bot = tileMat.block(0,nBands,ncol,nBands);
+
+     imad_utils::rowwise_subtract(top, means1, bot, means2);
+     MatrixXd mads = (top * A) - (bot * B);
+     imad_utils::rowwise_divide(mads,sigMADs);
+     VectorXd chisqr = mads.array().square().rowwise().sum().matrix();
+
+     boost::math::chi_squared dist(nBands);
+     for(int i = 0; i < weights.rows(); i++){
+       weights(i) = 1 - boost::math::cdf(dist, chisqr(i));
+     }
+
+     return weights;
+   }
+
 
   /*************************************************************************/
 
@@ -125,9 +138,31 @@ namespace imad_utils{
     throw std::invalid_argument("find_chunksize: Image is too large to chunk...what the hell do you have?");
   }
 
+/*************************************************************************/
+
+/* What follows are some of the most poorly-commented lines from the original
+ * Python implementation, and my understanding of them is still fuzzy.
+ * I have included modified versions of the original comments, and the
+ * lines are each numbered, with comment-footnotes at the end of the file */
+
+ //You are not expected to understand these lines. I certainly don't.
+
+  void math_cleanup(MatrixXd& A, MatrixXd& B, MatrixXd& s11, MatrixXd& s12){
+/* 1 */ MatrixXd D = s11.diagonal().array()      //Bookkeeping
+                        .sqrt().cwiseInverse()   //Inverse sqrt
+                        .matrix().asDiagonal();  //More bookkeeping
+/* 2 */ VectorXd s = (D*s11*A).rowwise().sum();
+        VectorXd tmp1 = (s.array() / (s.array().abs())).matrix();
+/* 3 */ imad_utils::colwise_multiply(A, tmp1);
+/* 4 */ VectorXd cov = (A.transpose() * s12 * B).diagonal();
+/* 5 */ MatrixXd tmp2 = (cov.array() / cov.array().abs()).matrix().asDiagonal();
+        B = B * tmp2;
+  }
+
+
   /*************************************************************************/
   bool Eigentup::operator< (Eigentup const &other) const{
-    return (eigenval < other.eigenval);
+    return (eigenval > other.eigenval);
   }
 
   Eigentup::Eigentup(double val, VectorXd vec_a, VectorXd vec_b){
@@ -136,3 +171,33 @@ namespace imad_utils{
     eigenvec_b = vec_b;
   }
 }
+
+
+/**** Notes on tile matrix ****/
+/* tile is a strange name for a matrix (borrowed from the python code).
+ * It holds a single row of both images. The top half of the matrix holds
+ * the row from file1, with all of its bands in separate rows (e.g. for any
+ * given row, row 1 of tile will hold image1, band1, row 2 will hold image1,
+ * band2, etc.). The same is true of the second image in the bottom
+ * half of tile. Note that this tile is transposed compared to the one in
+ * Python: Pyversion has rows in cols and files split left/right. */
+
+/**** Notes on numbered lines in imad() ****/
+/* While going through these, it is helpful to remember that left multiplying by
+ * a diagonal matrix (D*A) multiplies each row by the diagonal element, i.e.
+ * row1(A) = row1(A) * D(1,1), row2(A) = row2(A) * D(2,2), etc. and right-multiplying
+ * by a diagonal matrix multiplies the columns instead of the rows. Off we go!*/
+
+/* 1 */ /* Completely unintelligible. First, we take the diagonal of s11. We then
+ * cast it to an array (to deal with some issues with eigen), then take an
+ * element-wise inverse square root. We then revert it back to a diagonal matrix.
+ * The end effect is identical to masking all but the diagonal of s11, then
+ * taking an element-wise inverse square root. */
+
+/* 2 */ /* s is actually a row-vector. Not sure what this actually does */
+
+/* 3 */ /* If S(i,i) was negative, we set it to -1. Otherwise, we set it to +1.
+ * We then multiply A by this matrix to ensure the correlation sum is positive
+ * (Yes, this part feels like magic to me too). */
+
+/* 4,5 */ /* A similar process for B */
