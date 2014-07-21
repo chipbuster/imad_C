@@ -31,7 +31,7 @@ MatrixXd ImageStats::get_covar(){
          << "this probably means that the detected overlap area has no data. "
          << "Please try selecting the overlapping region manually. Also, note "
          << "that a single no-data value in any layer causes that pixel to be "
-         << "treated as no data in ALL the layers."
+         << "treated as no data in ALL the layers." << endl;
     throw std::runtime_error("No data in the image region specified");
   }
   covar = (covar / (sum_weights - 1.0));

@@ -93,7 +93,7 @@ namespace imad_utils{
 
    VectorXd& calc_weights(double* tile, VectorXd& weights, MatrixXd& A,
                          MatrixXd &B, VectorXd& means1, VectorXd& means2,
-                         VectorXd sigMADs, int ncol, int nBands){
+                         VectorXd& sigMADs, int ncol, int nBands){
      MapRMMatrixXd tileMat(tile, ncol, 2*nBands);
      MatrixRXd top = tileMat.block(0,0,ncol,nBands);
      MatrixRXd bot = tileMat.block(0,nBands,ncol,nBands);

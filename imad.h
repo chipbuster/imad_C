@@ -29,8 +29,8 @@ namespace GdalFileIO{
   void writeOutputToFile(GDALDataset* outfile, double* tile,
                          MatrixXd& A, MatrixXd& B, //Eigenvector matrices
                          int xoffset, int yoffset, int ncol, int nrow,
-                         std::vector<GDALRasterBand*>& bands_1,
-                         std::vector<GDALRasterBand*>& bands_2,
+                         GDALRasterBand** bands_1,
+                         GDALRasterBand** bands_2,
                          GDALDataset* reference_file,
                          VectorXd& sigMADs);
 }
@@ -54,13 +54,13 @@ namespace imad_utils{
   void math_cleanup(MatrixXd& A, MatrixXd& B, MatrixXd& s11, MatrixXd& s12);
   VectorXd& calc_weights(double* tile, VectorXd& weights, MatrixXd& A,
                         MatrixXd &B, VectorXd& means1, VectorXd& means2,
-                        VectorXd sigMADs, int ncol, int nBands);
+                        VectorXd& sigMADs, int ncol, int nBands);
 
 }
 
 namespace geo_utils{
 
-  
+
 
   struct ImageInfo{
     int ncol;

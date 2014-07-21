@@ -17,14 +17,17 @@ using std::endl;
 //defined in imad.h
 
 void imad(std::string filename1="", std::string filename2="",
-          std::string output_file="", std::string format=""){
+          std::string output_file="", std::string format="",
+          int* bands1_arg=NULL, int* bands2_arg=NULL){
   GDALAllRegister(); //Must be called at start, see GDAL API for details
 
   //openFile() will ask us for filenames if the names are blank
   GDALDataset* file1 = GdalFileIO::openFile(filename1);
   GDALDataset* file2 = GdalFileIO::openFile(filename2);
-
   if(!GdalFileIO::dimensionsmatch(file1,file2)) return; //function reports error
+
+  // int* bands1, bands2;
+  // int nBands = GdalFileIO::getBandInfo(bands1,bands2,bands1_arg, bands2_arg);
 
   GdalFileIO::getOutputFileInfo(output_file, format);
 
@@ -43,14 +46,14 @@ void imad(std::string filename1="", std::string filename2="",
   std::vector<int>& bandnums = *GdalFileIO::selectBands();
   int nBands = bandnums.size();
 
-  std::vector<GDALRasterBand*> bands_1  = std::vector<GDALRasterBand*>(nBands);
-  std::vector<GDALRasterBand*> bands_2  = std::vector<GDALRasterBand*>(nBands);
-  std::vector<double> noDataValues      = std::vector<double>(nBands);
+  GDALRasterBand** bands_1  = new GDALRasterBand*[nBands];
+  GDALRasterBand** bands_2  = new GDALRasterBand*[nBands];
+  double* noDataValues     = new double[nBands];
 
   //Get easy handles to raster bands (pointers)
-  for(size_t i = 0; i < bandnums.size(); i++){
-    bands_1[i]     = (file1->GetRasterBand(bandnums[i]));
-    bands_2[i]     = (file2->GetRasterBand(bandnums[i]));
+  for(int i = 0; i < nBands; i++){
+    bands_1[i]      = (file1->GetRasterBand(bandnums[i]));
+    bands_2[i]      = (file2->GetRasterBand(bandnums[i]));
     noDataValues[i] = bands_1[i]->GetNoDataValue();
   }
 
@@ -73,7 +76,7 @@ void imad(std::string filename1="", std::string filename2="",
   VectorXd rho, oldrho = VectorXd::Zero(nBands);
   MatrixXd A, B;
   VectorXd  sigMADs, means1, means2;
-  //Declare two special vectors for calculations later on
+  //Declare a special vector for calculations later on
   const VectorXd one = VectorXd::Constant(nBands, 1); //col vector of all "1"
 
   /* Start calculations (note double conditional in for-loop: we will continue
@@ -90,8 +93,10 @@ void imad(std::string filename1="", std::string filename2="",
                              &tile[k + nBands], ncol, 1,
                              GDT_Float64, sizeof(double)*(nBands*2), 0);
       }
+      //The image data for a single row of all bands is now in tile.
+      //Update the mean and covariance matrix by a provisional algorithm
 
-      if(iter > 0){
+      if(iter > 0){ //Repeated iterations use the previous iterations as weights
         VectorXd weights(ncol);
         weights = imad_utils::calc_weights(tile, weights, A, B, means1, means2,
                                                         sigMADs, ncol, nBands);
@@ -128,8 +133,7 @@ void imad(std::string filename1="", std::string filename2="",
       if (solver1.info() != Eigen::Success || solver2.info() != Eigen::Success){
         throw std::runtime_error("Eigensolver did not converge!");
       }
-      mu2 = solver2.eigenvalues(); //Eigenvalues should be identical
-      VectorXd diff = mu2 - solver1.eigenvalues();
+      mu2 = solver2.eigenvalues(); //Eigenvalues should be identical, use either
       A = solver1.eigenvectors();
       B = solver2.eigenvectors();
     }
@@ -139,28 +143,29 @@ void imad(std::string filename1="", std::string filename2="",
 
     imad_utils::reorder_eigens(mu2, A, B);
 
-    mu = mu2.array().sqrt().matrix(); //All aboard the crazy train!
+    mu = mu2.array().sqrt().matrix(); //Element-wise square root (mu2 = rho**2)
 
     //Calculate the variances of the eigenvectors (Var(e1), Var(e2), etc.)
     //Note that in Python, these are row vectors, while they are column in C
     VectorXd eigvarA = (A.transpose() * A).diagonal();
     VectorXd eigvarB = (B.transpose() * B).diagonal();
 
-
     /* Calculate the penalized MAD significances. Check the README for more
      * information on the source of the variable names */
 
-    VectorXd sigma = ((2*one - pen*(eigvarA + eigvarB))
-                                    /
-                          (1 - pen) - 2 * mu).array().sqrt().matrix();
+    //if pen == 0, sigma <-- 2*(1 - mu) and rho <-- mu
+
+    VectorXd sigma = ((2*one - pen*(eigvarA + eigvarB))          //numerator
+                                    /                            //---------
+                    (1 - pen) - 2 * mu).array().sqrt().matrix(); //denominator
 
     VectorXd rho = (
       mu.array() * (1 - pen)                                       //numerator
                  /                                                 //---------
-((one - pen*eigvarA).array() * (one - pen*eigvarB).array()).sqrt()  //denominator
+((one - pen*eigvarA).array() * (one - pen*eigvarB).array()).sqrt() //denominator
                    ).matrix();
 
-    delta = (rho - oldrho).maxCoeff(); //The max of diffs between correltaions
+    delta = (rho - oldrho).maxCoeff(); //The max of diffs between correlations
     oldrho = rho;
 
     cout << "Iteration: " << iter << "  --   Delta: " << delta << endl;
@@ -172,7 +177,7 @@ void imad(std::string filename1="", std::string filename2="",
     imad_utils::math_cleanup(A,B,s11,s12);
 
     }
-    
+
   //End iterations. Gear up to write final result to file.
 
   GDALDriver* outdriver=GetGDALDriverManager()->GetDriverByName(format.c_str());
@@ -186,6 +191,7 @@ void imad(std::string filename1="", std::string filename2="",
   GDALClose( (GDALDatasetH) file1 );
   GDALClose( (GDALDatasetH) file2 );
   GDALClose( (GDALDatasetH) outfile);
+
   delete &bandnums;
   delete[] tile;
 }

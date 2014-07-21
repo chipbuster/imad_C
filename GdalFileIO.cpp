@@ -71,8 +71,8 @@ namespace GdalFileIO{
     void writeOutputToFile(GDALDataset* outfile, double* tile,
                            MatrixXd& A, MatrixXd& B, //Eigenvector matrices
                            int xoffset, int yoffset, int ncol, int nrow,
-                           vector<GDALRasterBand*>& bands_1,
-                           vector<GDALRasterBand*>& bands_2,
+                           GDALRasterBand** bands_1,
+                           GDALRasterBand** bands_2,
                            GDALDataset* reference_file,
                            VectorXd& sigMADs){
       int nBands = A.cols();
