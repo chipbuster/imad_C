@@ -98,7 +98,7 @@ void imad(std::string filename1="", std::string filename2="",
 
       if(iter > 0){ //Repeated iterations use the previous iterations as weights
         VectorXd weights(ncol);
-        weights = imad_utils::calc_weights(tile, weights, A, B, means1, means2,
+        weights = imad_bigfun::calc_weights(tile, weights, A, B, means1, means2,
                                                         sigMADs, ncol, nBands);
         cpm.update(tile, weights.data(), ncol, 2*nBands);
       }
@@ -174,7 +174,7 @@ void imad(std::string filename1="", std::string filename2="",
     means1 = means.block(0,0,nBands,1);
     means2 = means.block(nBands,0,nBands,1);
 
-    imad_utils::math_cleanup(A,B,s11,s12);
+    imad_bigfun::math_cleanup(A,B,s11,s12);
 
     }
 

@@ -51,16 +51,10 @@ namespace imad_utils{
                         MatrixRXd& B, VectorXd& toSubtract2);
   void rowwise_divide(MatrixXd& A, VectorXd& toDivide);
   void colwise_multiply(MatrixXd& A, VectorXd& toMult);
-  void math_cleanup(MatrixXd& A, MatrixXd& B, MatrixXd& s11, MatrixXd& s12);
-  VectorXd& calc_weights(double* tile, VectorXd& weights, MatrixXd& A,
-                        MatrixXd &B, VectorXd& means1, VectorXd& means2,
-                        VectorXd& sigMADs, int ncol, int nBands);
 
 }
 
 namespace geo_utils{
-
-
 
   struct ImageInfo{
     int ncol;
@@ -99,6 +93,19 @@ namespace geo_utils{
     void GeotoImg(double& imgX, double& imgY);
     void ImgtoGeo(double& geoX, double& geoY);
   };
+}
+
+namespace imad_bigfun{
+
+  VectorXd& calc_weights(double* tile, VectorXd& weights, MatrixXd& A,
+                        MatrixXd &B, VectorXd& means1, VectorXd& means2,
+                        VectorXd& sigMADs, int ncol, int nBands);
+  int find_chunksize(int& buffersize, int ncol, int nBands);
+  void math_cleanup(MatrixXd& A, MatrixXd& B, MatrixXd& s11, MatrixXd& s12);
+  void readToBuf(double* tile, GDALRasterBand* band,
+            int offset, int yoffset, int row, int tilesize,
+            int nbuf_so_far, int nBands);
+
 }
 
 class ImageStats{

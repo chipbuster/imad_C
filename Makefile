@@ -1,26 +1,33 @@
 CC=g++
 LD=g++
-CCFLAGS= -O3 -g -p -c -Wall -I/usr/include/eigen3
-LDFLAGS=-g -p -lgdal -lm
 
+OBJS=imad.o GdalFileIO.o geo_utils.o imad_utils.o ImageStats.o imad_bigfun.o
+LIBS=-lgdal -lm
+INCLUDEDIRS= -I/usr/include/eigen3
 
-all: imad.o GdalFileIO.o geo_utils.o imad_utils.o ImageStats.o geo_utils.o
-	$(CC) imad.o GdalFileIO.o imad_utils.o geo_utils.o ImageStats.o $(LDFLAGS) -o imad
+CCFLAGS= -O3 -g -p -c -Wall
+LDFLAGS=-g -p
+
+all: $(OBJS)
+	$(CC) $(OBJS) $(LDFLAGS) $(LIBS) -o imad
 
 imad.o: imad.cpp
-	$(CC) $(CCFLAGS) imad.cpp -o imad.o
+	$(CC) $(CCFLAGS) $(INCLUDEDIRS) imad.cpp -o imad.o
 
 imad_utils.o: imad_utils.cpp
-	$(CC) $(CCFLAGS) imad_utils.cpp -o imad_utils.o
+	$(CC) $(CCFLAGS) $(INCLUDEDIRS) imad_utils.cpp -o imad_utils.o
 
-geo_utils.o:
-	$(CC) $(CCFLAGS) geo_utils.cpp -o geo_utils.o
+geo_utils.o: geo_utils.cpp
+	$(CC) $(CCFLAGS) $(INCLUDEDIRS) geo_utils.cpp -o geo_utils.o
+
+imad_bigfun.o: imad_bigfun.cpp
+	$(CC) $(CCFLAGS) $(INCLUDEDIRS) imad_bigfun.cpp -o imad_bigfun.o
 
 GdalFileIO.o: GdalFileIO.cpp
-	$(CC) $(CCFLAGS) GdalFileIO.cpp -o GdalFileIO.o
+	$(CC) $(CCFLAGS) $(INCLUDEDIRS) GdalFileIO.cpp -o GdalFileIO.o
 
 ImageStats.o: ImageStats.cpp
-	$(CC) $(CCFLAGS) ImageStats.cpp -o ImageStats.o
+	$(CC) $(CCFLAGS) $(INCLUDEDIRS) ImageStats.cpp -o ImageStats.o
 
 debug: imad
 	gdb imad
