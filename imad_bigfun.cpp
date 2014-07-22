@@ -13,6 +13,21 @@ using namespace Eigen;
 
 namespace imad_bigfun{
 
+  /* Uses the info given to read an appropriate section of the image into
+   * the buffer tile. tile must be at least bufsize large. The chunk returned
+   * is a single row at (xoffset + bufsize * nbuf_so_far, yoffset + row) with
+   * xsize of bufsize */
+
+  void readToBuf(double* tile, GDALRasterBand* band,
+          int xoffset, int yoffset, int row, int bufsize,
+          int nbuf_so_far, int nBands){
+
+    band->RasterIO(GF_Read, xoffset, yoffset + row, bufsize, 1,
+                       tile, bufsize, 1,
+                       GDT_Float64, sizeof(double)*(nBands*2), 0);
+
+  }
+
   /*************************************************************************/
 
   /* Gets CDF of Chisquared and places into weights array. CDF function is
@@ -38,7 +53,6 @@ namespace imad_bigfun{
 
      return weights;
    }
-
 
   /*************************************************************************/
 

@@ -37,4 +37,4 @@ test: all
 
 
 clean:
-	rm *.o imad
+	rm -f *.o imad

@@ -37,7 +37,7 @@ void imad(std::string filename1="", std::string filename2="",
   //Temporary hardcoding of values. Eventually, will be user-specified
   int xoffset = 0;
   int yoffset = 0;
-  int maxiter = 100; //Set to 1 to test output
+  int maxiter = 10; //Set to 1 to test output
   double tolerance = 0.0001;
   double pen = 0.0; //penalty
 
@@ -84,14 +84,13 @@ void imad(std::string filename1="", std::string filename2="",
   for(int iter = 0; iter < maxiter && delta > tolerance; iter++){
     for(int row = 0; row < nrow; row++){
       for(int k = 0; k < nBands; k++){
-        //Read into the appropriate location in tile.
-        //The Python code for this might be easier to understand.
-        bands_1[k]->RasterIO(GF_Read, xoffset, yoffset + row, ncol, 1,
-                             &tile[k], ncol, 1,
-                             GDT_Float64, sizeof(double)*(nBands*2), 0);
-        bands_2[k]->RasterIO(GF_Read, xoffset, yoffset + row, ncol, 1,
-                             &tile[k + nBands], ncol, 1,
-                             GDT_Float64, sizeof(double)*(nBands*2), 0);
+        imad_bigfun::readToBuf((tile + k), bands_1[k],
+                               xoffset, yoffset, row,
+                               ncol, 0, nBands);
+        imad_bigfun::readToBuf((tile + nBands + k), bands_2[k],
+                              xoffset, yoffset, row,
+                               ncol, 0, nBands);
+
       }
       //The image data for a single row of all bands is now in tile.
       //Update the mean and covariance matrix by a provisional algorithm
@@ -188,9 +187,10 @@ void imad(std::string filename1="", std::string filename2="",
                                 nrow, bands_1, bands_2, file1, sigMADs);
 
   //Cleanup in aisle 7!
+  GDALClose( (GDALDatasetH) outfile);
   GDALClose( (GDALDatasetH) file1 );
   GDALClose( (GDALDatasetH) file2 );
-  GDALClose( (GDALDatasetH) outfile);
+
 
   delete &bandnums;
   delete[] tile;
