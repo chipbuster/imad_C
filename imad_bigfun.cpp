@@ -19,10 +19,9 @@ namespace imad_bigfun{
    * xsize of bufsize */
 
   void readToBuf(double* tile, GDALRasterBand* band,
-          int xoffset, int yoffset, int row, int bufsize,
-          int nbuf_so_far, int nBands){
+          int xstart, int ystart, int bufsize, int nBands){
 
-    band->RasterIO(GF_Read, xoffset, yoffset + row, bufsize, 1,
+    band->RasterIO(GF_Read, xstart, ystart, bufsize, 1,
                        tile, bufsize, 1,
                        GDT_Float64, sizeof(double)*(nBands*2), 0);
 

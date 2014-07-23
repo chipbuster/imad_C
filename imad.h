@@ -102,9 +102,8 @@ namespace imad_bigfun{
                         VectorXd& sigMADs, int ncol, int nBands);
   int find_chunksize(int& buffersize, int ncol, int nBands);
   void math_cleanup(MatrixXd& A, MatrixXd& B, MatrixXd& s11, MatrixXd& s12);
-  void readToBuf(double* tile, GDALRasterBand* band,
-        int xoffset, int yoffset, int row, int bufsize,
-        int nbuf_so_far, int nBands);
+void readToBuf(double* tile, GDALRasterBand* band,
+        int xstart, int ystart, int bufsize, int nBands);
 
 }
 

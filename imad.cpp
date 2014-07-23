@@ -85,11 +85,11 @@ void imad(std::string filename1="", std::string filename2="",
     for(int row = 0; row < nrow; row++){
       for(int k = 0; k < nBands; k++){
         imad_bigfun::readToBuf((tile + k), bands_1[k],
-                               xoffset, yoffset, row,
-                               ncol, 0, nBands);
+                               xoffset, yoffset + row,
+                               ncol, nBands);
         imad_bigfun::readToBuf((tile + nBands + k), bands_2[k],
-                              xoffset, yoffset, row,
-                               ncol, 0, nBands);
+                              xoffset, yoffset + row,
+                               ncol, nBands);
 
       }
       //The image data for a single row of all bands is now in tile.
