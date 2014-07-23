@@ -35,10 +35,10 @@ namespace imad_bigfun{
 
    VectorXd& calc_weights(double* tile, VectorXd& weights, MatrixXd& A,
                          MatrixXd &B, VectorXd& means1, VectorXd& means2,
-                         VectorXd& sigMADs, int ncol, int nBands){
-     MapRMMatrixXd tileMat(tile, ncol, 2*nBands);
-     MatrixRXd top = tileMat.block(0,0,ncol,nBands);
-     MatrixRXd bot = tileMat.block(0,nBands,ncol,nBands);
+                         VectorXd& sigMADs, int bufsize, int nBands){
+     MapRMMatrixXd tileMat(tile, bufsize, 2*nBands);
+     MatrixRXd top = tileMat.block(0,0,bufsize,nBands);
+     MatrixRXd bot = tileMat.block(0,nBands,bufsize,nBands);
 
      imad_utils::rowwise_subtract(top, means1, bot, means2);
      MatrixXd mads = (top * A) - (bot * B);

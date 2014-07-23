@@ -7,7 +7,7 @@
 #include <Eigen/Dense>
 #include <math.h>
 
-inline int max(int a, int b){  return a > b ? a : b; }
+inline int min(int a, int b){  return a < b ? a : b; }
 
 using namespace Eigen;
 using std::cout; //debugging purposes
@@ -64,11 +64,11 @@ void imad(std::string filename1="", std::string filename2="",
    * (number of buffers per row) will be 1. For large, large images, you might
    * need more than that. find_chunksize() modifies bufsize in-place (by ref)*/
 
-/* Part of chunking---not yet implemented
-  float* tile;
-  int bufrsize = -1; //size of one row in the tile buffer
-  int nb_pr = find_chunksize(bufsize, ncol, nBands);
-*/
+  //Part of chunking---not yet implemented
+  int bufsize = -1; //size of one row in the tile buffer
+  int nb_pr = imad_bigfun::find_chunksize(bufsize, ncol, nBands);
+  int this_bufsize  = 0;
+
   double* tile = new double[2 * nBands * ncol];
 
   ImageStats cpm = ImageStats(nBands * 2);
@@ -83,26 +83,29 @@ void imad(std::string filename1="", std::string filename2="",
    * until the delta is smaller than the tolerance or to maxiter iterations) */
   for(int iter = 0; iter < maxiter && delta > tolerance; iter++){
     for(int row = 0; row < nrow; row++){
-      for(int k = 0; k < nBands; k++){
-        imad_bigfun::readToBuf((tile + k), bands_1[k],
-                               xoffset, yoffset + row,
-                               ncol, nBands);
-        imad_bigfun::readToBuf((tile + nBands + k), bands_2[k],
-                              xoffset, yoffset + row,
-                               ncol, nBands);
+      for(int bufnum = 0; bufnum < nb_pr; bufnum++){
+        for(int k = 0; k < nBands; k++){
+          int xstart = bufsize * bufnum;
+          this_bufsize = min(bufsize, ncol - xstart);
+          imad_bigfun::readToBuf((tile + k), bands_1[k],
+                                 xstart, yoffset + row,
+                                 this_bufsize, nBands);
+          imad_bigfun::readToBuf((tile + nBands + k), bands_2[k],
+                                 xstart, yoffset + row,
+                                 this_bufsize, nBands);
+        }
+        //The image data for a single row of all bands is now in tile.
+        //Update the mean and covariance matrix by a provisional algorithm
 
-      }
-      //The image data for a single row of all bands is now in tile.
-      //Update the mean and covariance matrix by a provisional algorithm
-
-      if(iter > 0){ //Repeated iterations use the previous iterations as weights
-        VectorXd weights(ncol);
-        weights = imad_bigfun::calc_weights(tile, weights, A, B, means1, means2,
-                                                        sigMADs, ncol, nBands);
-        cpm.update(tile, weights.data(), ncol, 2*nBands);
-      }
-      else{
-        cpm.update(tile, NULL, ncol, 2*nBands);
+        if(iter > 0){ //Repeated iterations use the previous iterations as weights
+          VectorXd weights(this_bufsize);
+          weights = imad_bigfun::calc_weights(tile, weights, A, B, means1, means2,
+                                                sigMADs, this_bufsize, nBands);
+          cpm.update(tile, weights.data(), this_bufsize, 2*nBands);
+        }
+        else{
+          cpm.update(tile, NULL, this_bufsize, 2*nBands);
+        }
       }
     }
     MatrixXd S = cpm.get_covar();
