@@ -30,28 +30,139 @@ namespace GdalFileIO{
     }
 
     /*************************************************************************/
+    /* Checks input paramenters for all potential errors. This function should
+     * never trigger in the R version because R should perform error checking */
 
-    bool dimensionsmatch(GDALDataset* dataset1, GDALDataset* dataset2){
-      return geo_utils::ImageInfo(dataset1).compatible(geo_utils::ImageInfo(dataset2));
+    bool has_errors(GDALDataset* file1, GDALDataset* file2,
+                   int* bands1_arg, int* bands2_arg, int nBands,
+                   int* win_size, int* offsets_1, int* offsets_2, int inp_pen ){
+
+      // Check whether input bands are within limits.
+
+
+      //offsets cannot be negative
+      if(offsets_1[0] < 0 || offsets_2[0] < 0 ||
+         offsets_1[1] < 0 || offsets_2[1] < 0 ){
+        cout << "Error: image offsets cannot be negative!" << endl;
+        return true;
+      }
+
+      //Image dims can't be negative either
+      if(win_size[0] < 0 || offsets_2[1] < 0){
+        cout << "Error: image dimensions cannot be negative!" << endl;
+        return true;
+      }
+
+      //Xoffset + Xwidth cannot exceed image Xsize
+      if(offsets_1[0] + win_size[0] > file1->GetRasterXSize()){
+        cout << "Error in Image 1: Dimensions too large." << endl;
+        cout << "X-offset + window width exceeds image x-dimension!" << endl;
+        return true;
+      }
+
+      //Perform the same check for image 2
+      if(offsets_2[0] + win_size[0] > file2->GetRasterXSize()){
+        cout << "Error in Image 2: Dimensions too large." << endl;
+        cout << "X-offset + window width exceeds image x-dimension!" << endl;
+        return true;
+      }
+
+      //Yoffset + Ywidth cannot exceed image Xsize
+      if(offsets_1[1] + win_size[1] > file1->GetRasterYSize()){
+        cout << "Error in Image 1: Dimensions too large." << endl;
+        cout << "Y-offset + window height exceeds image y-dimension!" << endl;
+        return true;
+      }
+
+      //Perform the same check for image 2
+      if(offsets_2[1] + win_size[1] > file2->GetRasterYSize()){
+        cout << "Error in Image 2: Dimensions too large." << endl;
+        cout << "Y-offset + window height exceeds image y-dimension!" << endl;
+        return true;
+      }
+
+      //Image penalty must be between 0 and 1
+      if(inp_pen > 1 || inp_pen < 0){
+        cout << "Error: penalization value must be between 0 and 1!" << endl;
+        return true;
+      }
+
+      if(nBands < 1){
+        cout << "Error: must have more than zero bands!" << endl;
+        return true;
+      }
+
+      return false;
     }
 
     /*************************************************************************/
 
-    vector<int>* selectBands(){
-      vector<int>* bands = new vector<int>();
-      cout << "Please enter the band numbers you would like to use, followed by a return"
-           << endl << "When you are finished, please enter 0. Yes this interface sucks." << endl;
+    int* selectBands(int nBands){
+      cout << "You have specified " << nBands << " bands will be used." << endl;
+      cout << "Please enter the band numbers you would like to use, separated "
+           << "by a space. Press 'enter' when done." << endl;
 
+      int* retval = new int[nBands];
       string input;
       cin >> input;
-      while(input != "0"){
-        bands->push_back(atof(input.c_str()));
+      for(int i = 0; i < nBands; i++){
+        retval[i] = atof(input.c_str());
         cin >> input;
       }
-      if (bands->size() < 1){
-        throw std::out_of_range("Need to specify at least one band.");
+      return retval;
+    }
+
+    /*************************************************************************/
+
+    /* If explicit values are not given for bands (i.e. bands to use and number
+     * of bands), this function will prompt the user to fill them */
+    void fix_missing_band_data(int** bands1, int** bands2, int& nBands){
+      if(nBands == -1){
+        cout << "Please enter the number of bands you would like to test." << endl;
+        cin >> nBands;
       }
-      return bands;
+      if (nBands < 1){
+        throw std::out_of_range("Invalid number of bands.");
+      }
+      if(*bands1 == NULL){
+        cout << "Selecting bands for image 1." << endl;
+        *bands1 = selectBands(nBands);
+      }
+      if(*bands2 == NULL){
+        cout << "Selecting bands for image 2." << endl;
+        *bands2 = selectBands(nBands);
+      }
+    }
+    /*************************************************************************/
+
+    /* If explicit values are not given for dims (i.e. size of window and
+     * image offsets), this function will prompt the user to fill them */
+    void fix_missing_dims_data(int** win_size, int** offset_1,int** offset_2){
+      //First, get window size
+      int nrow,ncol;
+      if(*win_size == NULL){
+        cout << "Please enter the number of columns in the image (X-size): ";
+        cin >> ncol;
+        cout << "Please enter the number of rows in the image (Y-size): ";
+        cin >> nrow;
+        *win_size = new int[2];
+        (*win_size)[0] = ncol; //use XSize x YSize instead of nrow x ncol
+        (*win_size)[1] = nrow;
+      }
+      if(*offset_1 == NULL){
+        (*offset_1) = new int[2];
+        cout << "Please enter the X-offset for image 1: ";
+        cin >> (*offset_1)[0];
+        cout << "Please enter the Y-offset for image 1: ";
+        cin >> (*offset_1)[1];
+      }
+      if(*offset_2 == NULL){
+        (*offset_2) = new int[2];
+        cout << "Please enter the X-offset for image 2: ";
+        cin >> (*offset_2)[0];
+        cout << "Please enter the Y-offset for image 2: ";
+        cin >> (*offset_2)[1];
+      }
     }
 
     /*************************************************************************/
@@ -68,6 +179,9 @@ namespace GdalFileIO{
     }
 
     /*************************************************************************/
+
+    //TODO: NEEDS REWRITING!
+
     void writeOutputToFile(GDALDataset* outfile, double* tile,
                            MatrixXd& A, MatrixXd& B, //Eigenvector matrices
                            int xoffset, int yoffset, int ncol, int nrow,

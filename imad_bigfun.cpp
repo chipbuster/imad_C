@@ -29,6 +29,7 @@ namespace imad_bigfun{
 
   /*************************************************************************/
 
+
   /* Gets CDF of Chisquared and places into weights array. CDF function is
    * backwards compared to Python (in python, param to chi2.cdf is second arg)
    * so [C++] cdf(rng(a), b) = stats.chi2.cdf(b,a) [Python] */
@@ -37,12 +38,18 @@ namespace imad_bigfun{
                          MatrixXd &B, VectorXd& means1, VectorXd& means2,
                          VectorXd& sigMADs, int bufsize, int nBands){
      MapRMMatrixXd tileMat(tile, bufsize, 2*nBands);
+     //Separate data from images 1 and 2 into their own matrices
      MatrixRXd top = tileMat.block(0,0,bufsize,nBands);
      MatrixRXd bot = tileMat.block(0,nBands,bufsize,nBands);
 
+
      imad_utils::rowwise_subtract(top, means1, bot, means2);
+     //Multiply images by eigenvectors to get MAD variates
      MatrixXd mads = (top * A) - (bot * B);
+
      imad_utils::rowwise_divide(mads,sigMADs);
+
+    //Do a rowwise sum of squares to get the chisqr values
      VectorXd chisqr = mads.array().square().rowwise().sum().matrix();
 
      boost::math::chi_squared dist(nBands);

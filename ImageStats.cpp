@@ -54,7 +54,6 @@ void ImageStats::update(double* input,
   double* diff = new double[nrow]; //Difference between element and mean
 
   for(int row = 0; row < nrow; row++ ){
-    //If no weights, weight defaults to 1
     /* Check for NODATA values. If any of the values are nodata, we increment
      * the row counter to skip that pixel. Note that this means that the outer
      * loop is NOT guaranteed to run nrow times---rows may be skipped here.*/
@@ -67,8 +66,8 @@ void ImageStats::update(double* input,
     }
     if(has_nodata) continue;
 
+    //If no weights, weight defaults to 1
     weight = weights == NULL ? 1 : weights[row];
-    assert(weight >= 0);
     sum_weights += weight;
     ratio = weight / sum_weights;
 

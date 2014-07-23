@@ -23,8 +23,12 @@ typedef Matrix<double,Dynamic,Dynamic,RowMajor> MatrixRXd;
 namespace GdalFileIO{
 
   GDALDataset* openFile(std::string filename);
-  bool dimensionsmatch(GDALDataset* dataset1, GDALDataset* dataset2);
-  std::vector<int>* selectBands();
+  int* selectBands(int nBands);
+  void fix_missing_band_data(int** bands1, int** bands2, int& nBands);
+  void fix_missing_dims_data(int** win_size, int** offset_1,int** offset_2);
+  bool has_errors(GDALDataset* file1, GDALDataset* file2,
+                 int* bands1_arg, int* bands2_arg, int nBands,
+                 int* win_size, int* offsets_1, int* offsets_2, int inp_pen );
   void getOutputFileInfo(std::string& output_file, std::string& format);
   void writeOutputToFile(GDALDataset* outfile, double* tile,
                          MatrixXd& A, MatrixXd& B, //Eigenvector matrices

@@ -23,7 +23,6 @@ namespace imad_utils{
   //NOTE: This function is probably super inefficient --K.Song, 2014-7-14
 
   void reorder_eigens(VectorXd& lambda, MatrixXd& A, MatrixXd& B){
-    //TODO: Rewrite function in accord with structures using eigen structs
 
     int N = lambda.rows();
 
@@ -35,7 +34,7 @@ namespace imad_utils{
       Eigentup thistup = Eigentup(  lambda(i),     A.col(i),    B.col(i));
       pairs.push_back(thistup);
     }
-    //Sort in order and reverse. Should probably fix this later.
+    //Sort in descending order by eigenvalue
     std::sort(pairs.begin(), pairs.end());
 
     /* Now populate the original matrix and eigenvalue vector. Eigenvectors
@@ -43,8 +42,10 @@ namespace imad_utils{
      * you are used to seeing in C codes. */
     for(int i = 0; i < N; i++){
       bool neg_eig = (pairs[i].eigenval < 0);
+      //Make sure eigenvalues are positive
       lambda(i) = neg_eig ? (-1) * pairs[i].eigenval : pairs[i].eigenval;
       for(int j = 0; j < N; j++){
+        //If eigenvalue was made positive, flip the eigenvector
         A(j,i) = neg_eig ? (-1) * pairs[i].eigenvec_a(j) : pairs[i].eigenvec_a(j);
         B(j,i) = neg_eig ? (-1) * pairs[i].eigenvec_b(j) : pairs[i].eigenvec_b(j);
       }
@@ -52,11 +53,24 @@ namespace imad_utils{
     return;
   }
 
+  bool Eigentup::operator< (Eigentup const &other) const{
+    return (eigenval > other.eigenval);
+  }
+
+  Eigentup::Eigentup(double val, VectorXd vec_a, VectorXd vec_b){
+    eigenval = val;
+    eigenvec_a = vec_a;
+    eigenvec_b = vec_b;
+  }
+
+
+
   /*************************************************************************/
 
   /* Subtracts a column vector from each column of the matrix. One hell of a
    * lot more efficient than the Python solution (repeat the vector as many
-   * times as necessary to get a matrix, then do matrix subtraction) */
+   * times as necessary to get a matrix, then do matrix subtraction). Does
+   * two subtractions at once to make the code a little cleaner */
 
   void rowwise_subtract(MatrixRXd& A, VectorXd& toSubtract1,
                         MatrixRXd& B, VectorXd& toSubtract2){
@@ -78,6 +92,8 @@ namespace imad_utils{
      }
   }
 
+  /* Takes a matrix and a vector and does an element-wise multiplication. */
+
   void colwise_multiply(MatrixXd& A, VectorXd& toMult){
     assert(A.rows() == toMult.rows());
     for(int i = 0; i < A.cols(); i++){
@@ -87,49 +103,22 @@ namespace imad_utils{
 
   /*************************************************************************/
 
-  /* Gets CDF of Chisquared and places into weights array. CDF function is
-   * backwards compared to Python (in python, param to chi2.cdf is second arg)
-   * so [C++] cdf(rng(a), b) = stats.chi2.cdf(b,a) [Python] */
-
-   VectorXd& calc_weights(double* tile, VectorXd& weights, MatrixXd& A,
-                         MatrixXd &B, VectorXd& means1, VectorXd& means2,
-                         VectorXd& sigMADs, int ncol, int nBands){
-     MapRMMatrixXd tileMat(tile, ncol, 2*nBands);
-     MatrixRXd top = tileMat.block(0,0,ncol,nBands);
-     MatrixRXd bot = tileMat.block(0,nBands,ncol,nBands);
-
-     imad_utils::rowwise_subtract(top, means1, bot, means2);
-     MatrixXd mads = (top * A) - (bot * B);
-     imad_utils::rowwise_divide(mads,sigMADs);
-     VectorXd chisqr = mads.array().square().rowwise().sum().matrix();
-
-     boost::math::chi_squared dist(nBands);
-     for(int i = 0; i < weights.rows(); i++){
-       weights(i) = 1 - boost::math::cdf(dist, chisqr(i));
-     }
-
-     return weights;
-   }
-
-
-  /*************************************************************************/
-
    /* Modifies the buffersize in-place, return value is number of chunks n
    needed in order to competely cover the input row. Can theoretically
    handle an image the size of the solar system...hopefully that won't be
    needed anytime soon. */
 
   int find_chunksize(int& buffersize, int ncol, int nBands){
-    const int max_memory_in_bytes = 1000000000; //1GB
+    const int max_memory_in_bytes = 1000000000; //1GB in bytes
     const int max_bufsize = max_memory_in_bytes / ncol / nBands / sizeof(double);
 
-    if(ncol < max_bufsize){
+    if(ncol < max_bufsize){ //Easy!
       buffersize = ncol;
       return 1;
     }
     else{
       for(int i = 1; i < std::numeric_limits<int>::max() - 2; i++){
-        if(ncol / i < max_bufsize){
+        if(ncol / i < max_bufsize){ //Search through possible ways to split
           buffersize = ncol / i + 1; //rounding up
           return i;
         }
@@ -143,7 +132,9 @@ namespace imad_utils{
 /* What follows are some of the most poorly-commented lines from the original
  * Python implementation, and my understanding of them is still fuzzy.
  * I have included modified versions of the original comments, and the
- * lines are each numbered, with comment-footnotes at the end of the file */
+ * lines are each numbered, with comment-footnotes at the end of this file.
+ * They have been moved out of the main function because they don't actually
+ * contribute to the math and are incredibly cryptic. */
 
  //You are not expected to understand these lines. I certainly don't.
 
@@ -158,20 +149,10 @@ namespace imad_utils{
 /* 5 */ MatrixXd tmp2 = (cov.array() / cov.array().abs()).matrix().asDiagonal();
         B = B * tmp2;
   }
+}
 
 
   /*************************************************************************/
-  bool Eigentup::operator< (Eigentup const &other) const{
-    return (eigenval > other.eigenval);
-  }
-
-  Eigentup::Eigentup(double val, VectorXd vec_a, VectorXd vec_b){
-    eigenval = val;
-    eigenvec_a = vec_a;
-    eigenvec_b = vec_b;
-  }
-}
-
 
 /**** Notes on tile matrix ****/
 /* tile is a strange name for a matrix (borrowed from the python code).
