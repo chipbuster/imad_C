@@ -233,6 +233,9 @@ namespace GdalFileIO{
           imad_utils::rowwise_divide(mads,sigMADs);
           //Take columnwise sum of squares, result is (1 x nBands) row vector
           VectorXd chisqr = mads.array().square().rowwise().sum().matrix();
+            outbands[nBands]->RasterIO(GF_Write, xstart, row, this_bufsize, 1,
+                                       chisqr.data(), this_bufsize, 1,
+                                       GDT_Float64, 0, 0);
         }
       }
       delete[] geotransform;
