@@ -42,7 +42,6 @@ namespace imad_bigfun{
      MatrixRXd top = tileMat.block(0,0,bufsize,nBands);
      MatrixRXd bot = tileMat.block(0,nBands,bufsize,nBands);
 
-
      imad_utils::rowwise_subtract(top, means1, bot, means2);
      //Multiply images by eigenvectors to get MAD variates
      MatrixXd mads = (top * A) - (bot * B);

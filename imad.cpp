@@ -7,8 +7,6 @@
 #include <Eigen/Dense>
 #include <math.h>
 
-inline int min(int a, int b){  return a < b ? a : b; }
-
 using namespace Eigen;
 using std::cout; //debugging purposes
 using std::endl;
@@ -20,8 +18,9 @@ void imad(std::string filename1="", std::string filename2="",
           std::string output_file="", std::string format="",
           int* bands1_arg=NULL, int* bands2_arg=NULL, int input_bands=-1,
           int* win_sz_arg=NULL, int* data1_offsets=NULL,int* data2_offsets=NULL,
-          double pen_inp=0.0, int maxiterations = 100, double err_tol = 0.001
+          double pen_inp=0.0, int maxiterations = 1, double err_tol = 0.0001
           ){
+
 
   /* We start off with a large block of largely uninteresting error-checking
    * code. You can mostly skip all this junk, it just checks inputs for sanity*/
@@ -100,7 +99,7 @@ void imad(std::string filename1="", std::string filename2="",
   ImageStats cpm = ImageStats(nBands * 2); //Tracks image stats (mean + cov)
   double delta = 100000; //Max change between correlations
   VectorXd rho, oldrho = VectorXd::Zero(nBands);
-  MatrixXd A, B; //Eigenvector matrices (eigens in columns)
+  MatrixXd A , B; //Eigenvector matrices (eigens in columns)
   VectorXd  sigMADs, means1, means2;
   //Declare a special vector for calculations later on
   const VectorXd one = VectorXd::Constant(nBands, 1); //col vector of all "1"
@@ -213,14 +212,21 @@ void imad(std::string filename1="", std::string filename2="",
 
     }
 
+    // //For debuging
+    // A = MatrixXd::Zero(nBands, nBands);
+    // B = MatrixXd::Zero(nBands, nBands);
+    // sigMADs = VectorXd::Zero(nBands);
+
   //End iterations. Gear up to write final result to file.
 
   GDALDriver* outdriver=GetGDALDriverManager()->GetDriverByName(format.c_str());
   GDALDataset *outfile = outdriver->Create(output_file.c_str(),ncol,nrow,
                                            nBands + 1, GDT_Float64, NULL);
 
-  GdalFileIO::writeOutputToFile(outfile, tile, A, B, x10, y10, ncol,
-                                nrow, bands_1, bands_2, file1, sigMADs);
+
+  GdalFileIO::writeOutputToFile(outfile, tile, A, B, x10, y10, x20, y20,
+                                ncol, nrow, nb_pr, bufsize,
+                                bands_1, bands_2, file1, sigMADs);
 
   //Cleanup in aisle 7!
   GDALClose( (GDALDatasetH) outfile);

@@ -184,7 +184,8 @@ namespace GdalFileIO{
 
     void writeOutputToFile(GDALDataset* outfile, double* tile,
                            MatrixXd& A, MatrixXd& B, //Eigenvector matrices
-                           int xoffset, int yoffset, int ncol, int nrow,
+                           int x10, int y10, int x20, int y20,
+                           int ncol, int nrow,int nb_pr, int bufsize,
                            GDALRasterBand** bands_1,
                            GDALRasterBand** bands_2,
                            GDALDataset* reference_file,
@@ -199,35 +200,40 @@ namespace GdalFileIO{
       outfile->SetGeoTransform(geotransform);
       outfile->SetProjection(projection);
 
-      vector<GDALRasterBand*> outbands  = vector<GDALRasterBand*>(nBands);
+      vector<GDALRasterBand*> outbands  = vector<GDALRasterBand*>(nBands + 1);
 
-      for(int i = 0; i < nBands; i++){
+      for(int i = 0; i <= nBands; i++){
         outbands[i] = outfile->GetRasterBand(i+1);
       }
-
+      int this_bufsize = 0;
+      int xstart = 0;
       for(int row = 0; row < nrow; row++){
-        for(int k = 0; k < nBands; k++){
-          bands_1[k]->RasterIO(GF_Read, xoffset, yoffset + row, ncol, 1,
-                               &tile[k], ncol, 1,
-                               GDT_Float64, sizeof(double)*(nBands*2), 0);
-          bands_2[k]->RasterIO(GF_Read, xoffset, yoffset + row, ncol, 1,
-                               &tile[k + nBands], ncol, 1,
-                               GDT_Float64, sizeof(double)*(nBands*2), 0);
+        for(int bufnum = 0; bufnum < nb_pr; bufnum++){
+          for(int k = 0; k < nBands; k++){
+            xstart = bufsize * bufnum;
+            this_bufsize = min(bufsize, ncol - xstart);
+            imad_bigfun::readToBuf((tile + k), bands_1[k],
+                                   x10 + xstart, y10 + row,
+                                   this_bufsize, nBands);
+            imad_bigfun::readToBuf((tile + nBands + k), bands_2[k],
+                                   x20 + xstart, y20 + row,
+                                   this_bufsize, nBands);
+          }
+          MapRMMatrixXd tileMat(tile, bufsize, 2*nBands);
+          MatrixRXd top = tileMat.block(0,0,bufsize,nBands);
+          MatrixRXd bot = tileMat.block(0,nBands,bufsize,nBands);
+          MatrixXd mads = (top * A) - (bot * B);
+          for(int k = 0; k < nBands; k++){
+            outbands[k]->RasterIO(GF_Write, xstart, row, this_bufsize, 1,
+                                 &(mads.data()[k*this_bufsize]), this_bufsize, 1,
+                                 GDT_Float64, 0,0 );
+            //implement chisqr to last band
+            outbands[k]->FlushCache();
+          }
+          imad_utils::rowwise_divide(mads,sigMADs);
+          //Take columnwise sum of squares, result is (1 x nBands) row vector
+          VectorXd chisqr = mads.array().square().rowwise().sum().matrix();
         }
-        MapRMMatrixXd tileMat(tile, ncol, 2*nBands);
-        MatrixRXd top = tileMat.block(0,0,ncol,nBands);
-        MatrixRXd bot = tileMat.block(0,nBands,ncol,nBands);
-        MatrixXd mads = (top * A) - (bot * B);
-        for(int k = 1; k < nBands; k++){
-          outbands[k]->RasterIO(GF_Write, xoffset, yoffset + row, ncol, 1,
-                               &(mads.data()[k*ncol]), ncol, 1,
-                               GDT_Float64, 0,0 );
-          //implement chisqr to last band
-          outbands[k]->FlushCache();
-        }
-        imad_utils::rowwise_divide(mads,sigMADs);
-        //Take columnwise sum of squares, result is (1 x nBands) row vector
-        VectorXd chisqr = mads.array().square().rowwise().sum().matrix();
       }
       delete[] geotransform;
     }
