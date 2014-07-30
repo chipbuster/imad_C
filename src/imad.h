@@ -1,5 +1,5 @@
-#ifndef HELPERS_H
-#define HELPERS_H
+#ifndef IMAD_H
+#define IMAD_H
 
 #include "gdal_priv.h"
 #include <Eigen/Dense>
@@ -25,12 +25,6 @@ typedef Matrix<double,Dynamic,Dynamic,RowMajor> MatrixRXd;
 namespace GdalFileIO{
 
   GDALDataset* openFile(std::string filename);
-  int* selectBands(int nBands);
-  void fix_missing_band_data(int** bands1, int** bands2, int& nBands);
-  void fix_missing_dims_data(int** win_size, int** offset_1,int** offset_2);
-  bool has_errors(GDALDataset* file1, GDALDataset* file2,
-                 int* bands1_arg, int* bands2_arg, int nBands,
-                 int* win_size, int* offsets_1, int* offsets_2, int inp_pen );
   void getOutputFileInfo(std::string& output_file, std::string& format);
   void writeOutputToFile(GDALDataset* outfile, double* tile,
                          MatrixXd& A, MatrixXd& B, //Eigenvector matrices
@@ -40,10 +34,19 @@ namespace GdalFileIO{
                          GDALRasterBand** bands_2,
                          GDALDataset* reference_file,
                          VectorXd& sigMADs);
+
+  //Functions below are for pure C++ error checking only
+  int* selectBands(int nBands);
+  void fix_missing_band_data(int** bands1, int** bands2, int& nBands);
+  void fix_missing_dims_data(int** win_size, int** offset_1,int** offset_2);
+  bool has_errors(GDALDataset* file1, GDALDataset* file2,
+                 int* bands1_arg, int* bands2_arg, int nBands,
+                 int* win_size, int* offsets_1, int* offsets_2, int inp_pen );
 }
 
 namespace imad_utils{
 
+  //Used to sort eigenvectors by their eigenvalues in reorder_eigens
   struct Eigentup{
     bool operator < (Eigentup const &other) const;
     Eigentup(double val, VectorXd vec_a, VectorXd vec_b);
@@ -104,16 +107,19 @@ namespace geo_utils{
 
 namespace imad_bigfun{
 
+  // This namespace used for larger functions to avoid cluttering imad_utils
+
   VectorXd& calc_weights(double* tile, VectorXd& weights, MatrixXd& A,
                         MatrixXd &B, VectorXd& means1, VectorXd& means2,
                         VectorXd& sigMADs, int ncol, int nBands);
   int find_chunksize(int& buffersize, int ncol, int nBands);
   void math_cleanup(MatrixXd& A, MatrixXd& B, MatrixXd& s11, MatrixXd& s12);
-void readToBuf(double* tile, GDALRasterBand* band,
+  void readToBuf(double* tile, GDALRasterBand* band,
         int xstart, int ystart, int bufsize, int nBands);
 
 }
 
+//Used to get image statistics, defined in ImageStats.cpp
 class ImageStats{
   int n2Bands;
   double sum_weights;
