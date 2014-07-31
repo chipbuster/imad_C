@@ -18,7 +18,7 @@ void imad(std::string filename1="", std::string filename2="",
           std::string output_file="", std::string format="",
           int* bands1_arg=NULL, int* bands2_arg=NULL, int input_bands=-1,
           int* win_sz_arg=NULL, int* data1_offsets=NULL,int* data2_offsets=NULL,
-          double pen_inp=0.0, int maxiterations = 1, double err_tol = 0.0001
+          double pen_inp=0.0, int maxiterations = 100, double err_tol = 0.002
           ){
 
 
@@ -202,7 +202,7 @@ void imad(std::string filename1="", std::string filename2="",
     delta = (rho - oldrho).maxCoeff(); //The max of diffs between correlations
     oldrho = rho;
 
-    cout << "Iteration: " << iter << "  --   Delta: " << delta << endl;
+    cout << "Iteration: " << iter << "  --   Delta: " << delta << " Rho: " << rho.transpose() << endl;
 
     sigMADs = sigma;
     means1 = means.block(0,0,nBands,1);
@@ -244,6 +244,7 @@ void imad(std::string filename1="", std::string filename2="",
   delete[] tile;
 }
 
+#ifdef STANDALONE
 int main(){ //dummy main
   std::string file1 = std::string("/home/chipbuster/POP_2014/lndsr.LE71960531999293EDC00.tif");
   std::string file2 = std::string("/home/chipbuster/POP_2014/lndsr.LE71960532000120EDC00.tif");
@@ -257,3 +258,4 @@ int main(){ //dummy main
   imad(file1,file2,out,fmt, bands1, bands2, nBands, win, offset, offset);
   return 0;
 }
+#endif

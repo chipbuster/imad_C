@@ -44,15 +44,15 @@ namespace GdalFileIO{
       double* geotransform   = new double[6];
       reference_file->GetGeoTransform(geotransform);
       //Move the origins of the picture to the overlap zone.
-      geotransform[0] = geotransform[0] + x10*geotransform[1]
-      geotransform[3] = geotransform[3] + y10*geotransform[5]
+      geotransform[0] = geotransform[0] + x10*geotransform[1];
+      geotransform[3] = geotransform[3] + y10*geotransform[5];
       const char* projection = reference_file->GetProjectionRef();
-      outfile->SetGeoTransform(geotransform);
       outfile->SetProjection(projection);
+      outfile->SetGeoTransform(geotransform);
 
-      vector<GDALRasterBand*> outbands  = vector<GDALRasterBand*>(nBands + 2);
+      vector<GDALRasterBand*> outbands  = vector<GDALRasterBand*>(nBands + 1);
 
-      for(int i = 0; i <= nBands + 1; i++){
+      for(int i = 0; i <= nBands; i++){
         outbands[i] = outfile->GetRasterBand(i+1);
       }
 
@@ -85,9 +85,10 @@ namespace GdalFileIO{
             outbands[k]->FlushCache();
           }
           imad_utils::rowwise_divide(mads,sigMADs);
-          //Take columnwise sum of squares, result is (1 x nBands) row vector
+          //Take rowwise sum of squares, result is a col vector
           VectorXd chisqr = mads.array().square().rowwise().sum().matrix();
 
+          std::cout << chisqr.maxCoeff() << std::endl;
           //Write ChiSqr values to extra band #1
           outbands[nBands]->RasterIO(GF_Write, xstart, row, this_bufsize, 1,
                                      chisqr.data(), this_bufsize, 1,

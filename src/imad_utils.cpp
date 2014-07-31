@@ -53,9 +53,8 @@ namespace imad_utils{
     return;
   }
 
-  //Intentionally written backwards so that the sort will be reversed
   bool Eigentup::operator< (Eigentup const &other) const{
-    return (eigenval > other.eigenval);
+    return (eigenval < other.eigenval);
   }
   //Yes, there's probably a better way to do this.
 
