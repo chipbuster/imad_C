@@ -245,9 +245,9 @@ void imad(std::string filename1="", std::string filename2="",
 }
 
 int main(){ //dummy main
-  std::string file1 = std::string("/home/chipbuster/POP_2014/lndsr.LE71960531999293EDC00.tif");
-  std::string file2 = std::string("/home/chipbuster/POP_2014/lndsr.LE71960532000120EDC00.tif");
-  std::string out = std::string("/home/chipbuster/POP_2014/C++_asd.tif");
+  std::string file1 = std::string("tjpeg.tif");//"/home/chipbuster/POP_2014/lndsr.LE71960531999293EDC00.tif");
+  std::string file2 = std::string("tjpeg.tif");//"/home/chipbuster/POP_2014/lndsr.LE71960532000120EDC00.tif");
+  std::string out = std::string("output_file");//"/home/chipbuster/POP_2014/C++_asd.tif");
   std::string fmt = std::string("GTiff");
   int bands1[3] = {1,2,3};
   int bands2[3] = {1,2,3};
