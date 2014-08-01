@@ -101,6 +101,10 @@ namespace geo_utils{
     void ImgtoGeo(double& geoX, double& geoY);
   };
 }
+namespace imad_ImageOverlap{
+  void ImageOverlap(string filename1 = "",string filename2 = "");
+
+}
 
 namespace imad_bigfun{
 
