@@ -44,10 +44,9 @@ namespace imad_utils{
       //Make sure eigenvalues are positive
       lambda(i) = neg_eig ? (-1) * pairs[i].eigenval : pairs[i].eigenval;
       for(int j = 0; j < N; j++){
-        //If eigenvalue was made positive, flip the eigenvector
-        //TODO: Rewrite using col() notations
-        A(j,i) = neg_eig ? (-1) * pairs[i].eigenvec_a(j) : pairs[i].eigenvec_a(j);
-        B(j,i) = neg_eig ? (-1) * pairs[i].eigenvec_b(j) : pairs[i].eigenvec_b(j);
+        //If eigenvalue was made positive, flip the eigenvectorSS
+        A.col(i) = neg_eig ? ((-1) * pairs[i].eigenvec_a).eval() : pairs[i].eigenvec_a;
+        B.col(i) = neg_eig ? ((-1) * pairs[i].eigenvec_b).eval() : pairs[i].eigenvec_b;
       }
     }
     return;

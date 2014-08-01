@@ -51,8 +51,7 @@ namespace geo_utils{
 
   double CoordTransform::ImgtoGeo_X(double imgP, double imgL){
     input(0) = imgP;
-    input(1) = imgL;
-    input(2) = 1;
+    input(1) = imgL;S
     output = Img2Geo * input;
     return output(0);
   }

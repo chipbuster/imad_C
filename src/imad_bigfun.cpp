@@ -37,6 +37,7 @@ namespace imad_bigfun{
    VectorXd& calc_weights(double* tile, VectorXd& weights, MatrixXd& A,
                          MatrixXd &B, VectorXd& means1, VectorXd& means2,
                          VectorXd& sigMADs, int bufsize, int nBands){
+
      MapRMMatrixXd tileMat(tile, bufsize, 2*nBands);
      //Separate data from images 1 and 2 into their own matrices
      MatrixRXd top = tileMat.block(0,0,bufsize,nBands);
