@@ -108,8 +108,8 @@ namespace imad_ImageOverlap{
     int windowWidth;
     int windowHeight;
 
-  }
-  void ImageOverlap(string filename1 = "",string filename2 = "");
+  };
+  void ImageOverlap(GDALDataset* input_file1,GDALDataset* input_file2);
 
 }
 
