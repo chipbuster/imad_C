@@ -20,7 +20,6 @@ namespace imad_utils{
   /* This function takes a vector of eigenvalues and a matrix
    * of eigenvectors (in columns). It sorts the eigenvalues in
    * descending order and then reorders the eigenvectors appropriately */
-  //NOTE: This function is probably super inefficient --K.Song, 2014-7-14
 
   void reorder_eigens(VectorXd& lambda, MatrixXd& A, MatrixXd& B){
 
@@ -38,24 +37,25 @@ namespace imad_utils{
     std::sort(pairs.begin(), pairs.end());
 
     /* Now populate the original matrix and eigenvalue vector. Eigenvectors
-     * are stored in columns, so this may be backwards compared to what
+     * are stored in columns, so this ordering may be backwards compared to what
      * you are used to seeing in C codes. */
     for(int i = 0; i < N; i++){
       bool neg_eig = (pairs[i].eigenval < 0);
       //Make sure eigenvalues are positive
       lambda(i) = neg_eig ? (-1) * pairs[i].eigenval : pairs[i].eigenval;
       for(int j = 0; j < N; j++){
-        //If eigenvalue was made positive, flip the eigenvector
-        A(j,i) = neg_eig ? (-1) * pairs[i].eigenvec_a(j) : pairs[i].eigenvec_a(j);
-        B(j,i) = neg_eig ? (-1) * pairs[i].eigenvec_b(j) : pairs[i].eigenvec_b(j);
+        //If eigenvalue was made positive, flip the eigenvectorSS
+        A.col(i) = neg_eig ? ((-1) * pairs[i].eigenvec_a).eval() : pairs[i].eigenvec_a;
+        B.col(i) = neg_eig ? ((-1) * pairs[i].eigenvec_b).eval() : pairs[i].eigenvec_b;
       }
     }
     return;
   }
 
   bool Eigentup::operator< (Eigentup const &other) const{
-    return (eigenval > other.eigenval);
+    return (eigenval < other.eigenval);
   }
+  //Yes, there's probably a better way to do this.
 
   Eigentup::Eigentup(double val, VectorXd vec_a, VectorXd vec_b){
     eigenval = val;
@@ -68,7 +68,7 @@ namespace imad_utils{
   /*************************************************************************/
 
   /* Subtracts a column vector from each column of the matrix. One hell of a
-   * lot more efficient than the Python solution (repeat the vector as many
+   * lot more mem efficient than the Python solution (repeat the vector as many
    * times as necessary to get a matrix, then do matrix subtraction). Does
    * two subtractions at once to make the code a little cleaner */
 

@@ -7,10 +7,10 @@
 #include <assert.h>
 
 namespace geo_utils{
-  /** begin class CoordTransform **/
+  /** begin class CoordTransform, defined in header **/
 
   CoordTransform::CoordTransform(double* transform_coeff){
-    //Notes can be found in the header file. Construct affine transform matrix
+    //Construct affine transform matrix
     Img2Geo(0,2) = transform_coeff[0];
     Img2Geo(1,2) = transform_coeff[3];
     Img2Geo(0,0) = transform_coeff[1];
@@ -25,7 +25,7 @@ namespace geo_utils{
     //Last element of affine transform vectors is always 1
     input(2) = 1;
   }
-  //Save the user from having to make their own buffers
+  //Alternate constructor: get geotransform for user from a dataset handle
   CoordTransform::CoordTransform(GDALDataset* input_file){
     double* transform_coeff = new double[6];
     input_file->GetGeoTransform(transform_coeff);
@@ -51,8 +51,7 @@ namespace geo_utils{
 
   double CoordTransform::ImgtoGeo_X(double imgP, double imgL){
     input(0) = imgP;
-    input(1) = imgL;
-    input(2) = 1;
+    input(1) = imgL;S
     output = Img2Geo * input;
     return output(0);
   }

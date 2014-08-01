@@ -3,9 +3,6 @@
 //typedef Map<Matrix<float,Dynamic,Dynamic,RowMajor> > MapRMMatrixXd;
 //defined in imad.h
 
-using std::cout; //debugging purposes
-using std::endl;
-
 ImageStats::ImageStats(size_t input){
     n2Bands = input;
     means = VectorXd(n2Bands);
@@ -26,15 +23,17 @@ VectorXd ImageStats::get_means(){
 
 MatrixXd ImageStats::get_covar(){
   if(covar == MatrixXd::Zero(n2Bands,n2Bands)){
-    cout << "Error: iMad was unable to find pixel values that had data in the "
-         << "region specified. If you are using automatic overlap detection, "
+std:: cout << "Error: iMad was unable to find pixel values that had data in the"
+         << " region specified. If you are using automatic overlap detection, "
          << "this probably means that the detected overlap area has no data. "
          << "Please try selecting the overlapping region manually. Also, note "
          << "that a single no-data value in any layer causes that pixel to be "
-         << "treated as no data in ALL the layers." << endl;
+         << "treated as no data in ALL the layers." << std::endl;
     throw std::runtime_error("No data in the image region specified");
   }
   covar = (covar / (sum_weights - 1.0));
+
+  //Covar is a triangular matrix. Flesh it out so that it's a symmetric matrix
   MatrixXd diagonal = covar.diagonal().asDiagonal();
   return covar + covar.transpose() - diagonal;
 }
@@ -42,10 +41,16 @@ MatrixXd ImageStats::get_covar(){
 void ImageStats::reset(){
   means.setZero(n2Bands);
   covar.setZero(n2Bands,n2Bands);
-  sum_weights = 0.00001;
+  sum_weights = 0.00001; //Not zero because of divide-by-zero errors
 }
 
-//TODO: Separate updates for mean and covar?
+/* ImageStats calculates the mean and covariance of an image, one partial row
+ * at a time. It does this by reading in a matrix of weights and values, then
+ * updating its internal mean/covariance according to those values. Note that
+ * the calculations are not always perfect (e.g. the mean function takes a
+ * running mean instead of using the mean at the end), but this does not matter
+ * to iMAD because it iterates to convergence, so small errors do not affect
+ * the ultimate result. */
 
 void ImageStats::update(double* input,
                         double* weights, int nrow, int ncol){
@@ -86,11 +91,3 @@ void ImageStats::update(double* input,
   }
   delete[] diff;
 }
-
-/* Python stores an image row in a column, with different bands in
- * different columns. The C++ code stores images in rows, with different
- * bands in distinct rows (that is, in C++, you read right to find more
- * pixels from the same band, and read down to find the pixel value from
- * a different band in the same location, whereas in Python, you read
- * down to find more pixels in the same band, and right for different
- * bands). */
