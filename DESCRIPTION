@@ -7,6 +7,6 @@ Suggests:
 Author: Kevin Song and Tessa Barton for current implelentation, Dr. Morton
         Canty for original Python implementations
 Description:
-Maintainer: Kevin Song <ksong8 .at. ucmerced.edu>
+Maintainer:
 License: GPL (>= 2)
 URL: http://www.gdal.org/
