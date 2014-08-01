@@ -1,11 +1,11 @@
 CC=g++
 LD=g++
 
-OBJS=imad.o GdalFileIO.o geo_utils.o imad_utils.o ImageStats.o imad_bigfun.o
+OBJS=imad.o GdalFileIO.o geo_utils.o imad_utils.o ImageStats.o imad_bigfun.o imad_ImageOverlap.o
 LIBS=-lgdal -lm
 INCLUDEDIRS= -Iinclude/
 
-CCFLAGS= -O3 -g -p -c -Wall 
+CCFLAGS= -O3 -g -p -c -Wall
 LDFLAGS=-g -p
 
 all: $(OBJS)
@@ -28,6 +28,9 @@ GdalFileIO.o: GdalFileIO.cpp
 
 ImageStats.o: ImageStats.cpp
 	$(CC) $(CCFLAGS) $(INCLUDEDIRS) ImageStats.cpp -o ImageStats.o
+
+imad_ImageOverlap.o: imad_ImageOverlap.cpp
+	$(CC) $(CCFLAGS) $(INCLUDEDIRS) -Wno-unused-local-typedefs imad_ImageOverlap.cpp -o imad_ImageOverlap.o
 
 debug: imad
 	gdb imad
