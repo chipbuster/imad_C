@@ -12,6 +12,8 @@ using namespace Eigen;
 
 namespace imad_ImageOverlap{
 
+  //window::window(GdalDatasest *)
+
   void ImageOverlap(string filename1 = "",string filename2 = "");
-  
+
 }

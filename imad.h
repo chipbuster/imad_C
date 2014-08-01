@@ -102,6 +102,13 @@ namespace geo_utils{
   };
 }
 namespace imad_ImageOverlap{
+  struct window{
+    int offsetOne;
+    int offsetTwo;
+    int windowWidth;
+    int windowHeight;
+
+  }
   void ImageOverlap(string filename1 = "",string filename2 = "");
 
 }
