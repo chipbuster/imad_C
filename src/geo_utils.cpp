@@ -133,8 +133,8 @@ namespace geo_utils{
 
   bool ImageInfo::compatible(const ImageInfo& other) const{
     /* Check that dimensions of the two files match in X, Y, and num. bands
-     * Compatibility does not require that the geotransforms match, only that
-     * the projections do. */
+     * Compatibility does not require that the origins match, only that
+     * the projections and pixel sizes do. */
     if(other.ncol != ncol){
       std::cout<< "X-dimension mismatch in images. Exiting..." << std::endl;
       return false;
@@ -150,6 +150,15 @@ namespace geo_utils{
     //If projections are not equal
     if(strcmp(other.projection,projection)){
       std::cout<< "Projections of files do not match. Exiting..." << std::endl;
+      return false;
+    }
+    //Check pixel sizes
+    if(abs(geotransform[1] - other.geotransform[4])) > 0.00001){
+      std::cout<< "Pixel sizes do not match. Exiting..." << std::endl;
+      return false;
+    }
+    if(abs(geotransform[2] - other.geotransform[5])) > 0.00001){
+      std::cout<< "Pixel sizes do not match. Exiting..." << std::endl;
       return false;
     }
     return true;

@@ -68,10 +68,13 @@ namespace geo_utils{
 
   //Simple struct to encapsulate a coordinate
   struct Coord{
-    double x;
-    double y;
-    Coord(double X, double Y){
+    int x;
+    int y;
+    Coord(int X, int Y){
       x=X; y=Y;
+    }
+    Coord operator + (const Coord& other) const{
+      return Coord(x + other.x, y + other.y);
     }
   }
 
