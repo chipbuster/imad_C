@@ -52,6 +52,10 @@ namespace imad_ImageOverlap{
       ||(box1.LR.y <= box2.LL.y))){
         throw std::invalid_argument("Error while opening file" + filename);
       }
+    //Case 2 one image is entirely within the other
+    if(){
+
+    }
 
 
   }
