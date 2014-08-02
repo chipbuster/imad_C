@@ -45,10 +45,12 @@ void imad(std::string filename1="", std::string filename2="",
   GdalFileIO::fix_missing_band_data(&bandlist_1, &bandlist_2, input_bands);
   GdalFileIO::fix_missing_dims_data(&win_size, &offsets_1, &offsets_2);
 
+
   //Auto dimension selection!
   if(win_size[0] < 0 || win_size[1] < 0){
     imad_ImageOverlap::ImageOverlap(file1, file2, win_size, offsets_1, offsets_2);
   }
+
 
   //Check for any malformed inputs
   bool has_error = GdalFileIO::has_errors( file1, file2,

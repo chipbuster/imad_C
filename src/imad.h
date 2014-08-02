@@ -124,7 +124,8 @@ namespace imad_ImageOverlap{
     int windowHeight;
 
   };
-  void ImageOverlap(GDALDataset* input_file1,GDALDataset* input_file2);
+  void ImageOverlap(GDALDataset* input_file1,GDALDataset* input_file2,
+                     int *win_size, int *offsets_1,int * offsets_2);
 
 }
 

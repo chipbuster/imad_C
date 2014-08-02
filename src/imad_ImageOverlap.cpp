@@ -42,8 +42,6 @@ namespace imad_ImageOverlap{
       }
 
 
-
-
   }
 
 
