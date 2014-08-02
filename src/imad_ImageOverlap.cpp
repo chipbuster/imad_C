@@ -34,6 +34,10 @@ struct BoundingBox{
     myTrans.ImgtoGeo(LR);
     //Done
   }
+
+  bool inside(const BoundingBox& other){
+
+  }
 }
 
 namespace imad_ImageOverlap{
@@ -43,10 +47,12 @@ namespace imad_ImageOverlap{
 
     CoordTransform img_1 = CoordTransform(input_file1);
     CoordTransform img_2 = CoordTransform(input_file2);
-
-    BoundingBox box1 = BoundingBox(input_file1);
-    BoundingBox box2 = BoundingBox(input_file2);
-
+    ImageInfo     info_1 = ImageInfo(input_file1);
+    ImageInfo     info_2 = ImageInfo(input_file2);
+    //Compatible() will give details if it fails
+    if(! info_1.compatible(info_2)){
+      throw std::invalid_argument("Images are not compatible!")
+    }
     // Case 1, the two images do not overlap, should throw an exception
     if(((box1.UL.x <= box2.UR.x) ||(box1.UR.x >= box2.UL.x))&&((box1.LL.y>= box2.LR.y)
       ||(box1.LR.y <= box2.LL.y))){
