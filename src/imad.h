@@ -70,7 +70,7 @@ namespace geo_utils{
   struct Coord{
     double x;
     double y;
-    Coord(double Y, double Y){
+    Coord(double X, double Y){
       x=X; y=Y;
     }
   }
