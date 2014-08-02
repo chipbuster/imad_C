@@ -54,8 +54,10 @@ struct BoundingBox{
     left = x_00; right = x_00 + xsize
   }
 
-  bool inside(const BoundingBox& other){
-
+  bool contains(const Coord& point){
+    if(point.y < top || point.y > bot) return false;
+    if(point.x < left || point.x > right) return false;
+    return true;
   }
 }
 
