@@ -84,12 +84,21 @@ namespace imad_ImageOverlap{
         //Is b2 left of b1?       Is b1 left of b2?
     if(( box2.left <= box1.right || box1.right <= box2.left ||
         box2.top <= box1.bot || box1.bot <= box2.top ){
-        throw std::invalid_argument("Error while opening file" + filename);
+        throw std::invalid_argument("Images do not appear to overlap!"));
       }
     //Case 2 one image is entirely within the other
     if(){
+      
+    }
+
+    //Case 3: Images do not contain corners, but still overlap, e.g. a cross
+    if(){
 
     }
+
+    cout << "Automatic overlap detection failed. This is a program bug." << endl
+         << "You can attempt to manually specify offsets and overlaps." << endl;
+    throw std::runtime_error("Image overlap detection has failed.");
   }
 
 
