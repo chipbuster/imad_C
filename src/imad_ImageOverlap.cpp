@@ -12,12 +12,12 @@ using namespace std;
 
 //BoundingBox is only ever used locally, so keep def'n in-file
 struct BoundingBox{
-  Coord UL;
+  Coord UL; // coord has x and y
   Coord UR;
   Coord LL;
   Coord LR;
-  BoundingBox(GDALDataset* input){
-    CoordTransform myTrans = CoordTransform(input);
+  BoundingBox(GDALDataset* input){ // get coordinates of the corners easily
+    CoordTransform myTrans = CoordTransform(input); // will change coordinate in place
     int xsize = input->GetRasterXSize();
     int ysize = input->GetRasterYSize();
     UL = Coord(myTrans.)
@@ -31,6 +31,15 @@ namespace imad_ImageOverlap{
 
     CoordTransform img_1 = CoordTransform(input_file1);
     CoordTransform img_2 = CoordTransform(input_file2);
+
+    BoundingBox box1 = BoundingBox(input_file1);
+    BoundingBox box2 = BoundingBox(input_file2);
+
+    // Case 1, the two images do not overlap, should throw an exception
+    if(((box1.UL.x <= box2.UR.x) ||(box1.UR.x >= box2.UL.x))&&((box1.LL.y>= box2.LR.y)
+      ||(box1.LR.y <= box2.LL.y))){
+        throw std::invalid_argument("Error while opening file" + filename);
+      }
 
 
 
