@@ -54,10 +54,8 @@ struct BoundingBox{
     left = x_00; right = x_00 + xsize
   }
 
-  bool contains(const Coord& point){
-    if(point.y < top || point.y > bot) return false;
-    if(point.x < left || point.x > right) return false;
-    return true;
+  bool inside(const BoundingBox& other){
+
   }
 }
 
@@ -77,7 +75,7 @@ namespace imad_ImageOverlap{
 
     //Compatible() will give details if it fails
     if(! info_1.compatible(info_2)){
-      throw std::invalid_argument("Images are not compatible!")
+      throw std::invalid_argument("Images are not compatible!");
     }
 
     // Case 1, the two images do not overlap, should throw an exception
@@ -87,7 +85,26 @@ namespace imad_ImageOverlap{
         throw std::invalid_argument("Error while opening file" + filename);
       }
     //Case 2 one image is entirely within the other
-    if(){
+    // determine if corners are inside... first lets do box 2 inside box 1
+    // test if upper corner of box 2 is inside box 1
+    if(box2.UL is inside box1){
+      // test if other corner is inside
+      if(box2.LR is inside box1){
+        //return whole of box 2
+      }
+      else{
+        //return intersection of box 1 and box2
+      }
+
+    }
+    if(box1.UL.x <= box1.UL.x && box 1.UL.y <= box2.UL.y){
+      // test if other corner is inside
+      if(box2.LR is inside box1){
+        //return whole of box 2
+      }
+      else{
+        //return intersection of box 1 and box2
+      }
 
     }
   }
