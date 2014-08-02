@@ -13,6 +13,8 @@ using namespace std;
 //BoundingBox is only ever used locally, so keep def'n in-file
 struct BoundingBox{
   Coord UL;
+  Coord UR;
+  Coord LL;
   Coord LR;
   BoundingBox(GDALDataset* input){
     CoordTransform myTrans = CoordTransform(input);
@@ -21,12 +23,16 @@ struct BoundingBox{
 
     //List image corners in Pixel,Line coordinates
     UL = Coord(0,0);
+    UR = Coord(xsize+1,0);
     LR = Coord(xsize+1,ysize+1);
+    LL = Coord(0,ysize+1);
 
     //Transform corners to geographic coordinates
     myTrans.ImgtoGeo(UL);
+    myTrans.ImgtoGeo(UR);
+    myTrans.ImgtoGeo(LL);
     myTrans.ImgtoGeo(LR);
-    //Done!
+    //Done
   }
 }
 
