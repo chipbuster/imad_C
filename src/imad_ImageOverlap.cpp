@@ -64,6 +64,10 @@ namespace imad_ImageOverlap{
     CoordTransform img_2 = CoordTransform(input_file2);
     ImageInfo     info_1 = ImageInfo(input_file1);
     ImageInfo     info_2 = ImageInfo(input_file2);
+    BoundingBox box1 = BoundingBox(input_file1);
+    BoundingBox box2 = BoundingBox(input_file2,input_file1); /*assumes pixel sizes are the same
+    putting UL of box 1 as 0,0*/
+
 
     //Compatible() will give details if it fails
     if(! info_1.compatible(info_2)){
@@ -71,8 +75,8 @@ namespace imad_ImageOverlap{
     }
 
     // Case 1, the two images do not overlap, should throw an exception
-    if(((box1.UL.x <= box2.UR.x) ||(box1.UR.x >= box2.UL.x))&&((box1.LL.y>= box2.LR.y)
-      ||(box1.LR.y <= box2.LL.y))){
+    if(box1.right <= box2.left ||box1.left >= box2.right|| box1.bot>= box2.top
+      ||box1.top <= box2.bot){
         throw std::invalid_argument("Error while opening file" + filename);
       }
     //Case 2 one image is entirely within the other
