@@ -11,11 +11,13 @@
 using namespace std;
 
 //BoundingBox is only ever used locally, so keep def'n in-file
+//Use image coordinates: x increases going right, y increases going down
 struct BoundingBox{
-  Coord UL; // coord has x and y
-  Coord UR;
+  Coord UL; // coord has x and y (upper left)
+  Coord UR; // upper right, etc.
   Coord LL;
   Coord LR;
+  int top, bot, left, right;
   BoundingBox(GDALDataset* input){ //Get coordinate in pixel/line
     int xsize = input->GetRasterXSize();
     int ysize = input->GetRasterYSize();
@@ -24,6 +26,7 @@ struct BoundingBox{
     UR = Coord(xsize,0);
     LR = Coord(xsize,ysize);
     LL = Coord(0,ysize);
+    top = 0; bot = ysize; left = 0; right = xsize;
   }
   //This constructor places the coordinates relative to the first (i.e. assumes
   //that the origin of the reference file is 0,0). These are still P,L coords
@@ -47,7 +50,8 @@ struct BoundingBox{
     UR = Coord(xsize,0) + UL;
     LR = Coord(xsize,ysize) + UL;
     LL = Coord(0,ysize) + UL;
-
+    top = y_00; bot = y_00 + ysize;
+    left = x_00; right = x_00 + xsize
   }
 
   bool inside(const BoundingBox& other){
@@ -71,11 +75,11 @@ namespace imad_ImageOverlap{
     }
 
     // Case 1, the two images do not overlap, should throw an exception
-    if(((box1.UL.x <= box2.UR.x) ||(box1.UR.x >= box2.UL.x))&&((box1.LL.y>= box2.LR.y)
-      ||(box1.LR.y <= box2.LL.y))){
+        //Is b2 left of b1?       Is b1 left of b2?
+    if(( box2.UR.x <= box1.UL.x || box1.UR.x <= box2.UL.x ||
+        box1.LL.y >= box2.LR.y || box1.LR.y <= box2.LL.y){
         throw std::invalid_argument("Error while opening file" + filename);
       }
-
   }
 
 
