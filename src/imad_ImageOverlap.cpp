@@ -20,7 +20,19 @@ struct BoundingBox{
     CoordTransform myTrans = CoordTransform(input); // will change coordinate in place
     int xsize = input->GetRasterXSize();
     int ysize = input->GetRasterYSize();
-    UL = Coord(myTrans.)
+
+    //List image corners in Pixel,Line coordinates
+    UL = Coord(0,0);
+    UR = Coord(xsize+1,0);
+    LR = Coord(xsize+1,ysize+1);
+    LL = Coord(0,ysize+1);
+
+    //Transform corners to geographic coordinates
+    myTrans.ImgtoGeo(UL);
+    myTrans.ImgtoGeo(UR);
+    myTrans.ImgtoGeo(LL);
+    myTrans.ImgtoGeo(LR);
+    //Done
   }
 }
 

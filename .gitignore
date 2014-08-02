@@ -1,6 +1,7 @@
 a.out
 *.gch
 imad
+src/Makefile
 
 ### C++ ###
 # Compiled Object files
