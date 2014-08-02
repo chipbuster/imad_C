@@ -154,11 +154,11 @@ namespace geo_utils{
     }
     //Check pixel sizes
     if(abs(geotransform[1] - other.geotransform[4])) > 0.00001){
-      std::cout<< "Projections of files do not match. Exiting..." << std::endl;
+      std::cout<< "Pixel sizes do not match. Exiting..." << std::endl;
       return false;
     }
     if(abs(geotransform[2] - other.geotransform[5])) > 0.00001){
-      std::cout<< "Projections of files do not match. Exiting..." << std::endl;
+      std::cout<< "Pixel sizes do not match. Exiting..." << std::endl;
       return false;
     }
     return true;
