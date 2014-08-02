@@ -45,8 +45,10 @@ void imad(std::string filename1="", std::string filename2="",
   GdalFileIO::fix_missing_band_data(&bandlist_1, &bandlist_2, input_bands);
   GdalFileIO::fix_missing_dims_data(&win_size, &offsets_1, &offsets_2);
 
-  //Enter -1 to force automatic window calculation
-  imad_ImageOverlap::ImageOverlap(file1,file2);
+  //Auto dimension selection!
+  if(win_size[0] < 0 || win_size[1] < 0){
+    imad_ImageOverlap::ImageOverlap(file1, file2, win_size, offsets_1, offsets_2);
+  }
 
   //Check for any malformed inputs
   bool has_error = GdalFileIO::has_errors( file1, file2,
@@ -249,9 +251,9 @@ void imad(std::string filename1="", std::string filename2="",
 
 #ifdef STANDALONE
 int main(){ //dummy main
-  std::string file1 = std::string("tjpeg.tif");//"/home/chipbuster/POP_2014/lndsr.LE71960531999293EDC00.tif");
-  std::string file2 = std::string("tjpeg.tif");//"/home/chipbuster/POP_2014/lndsr.LE71960532000120EDC00.tif");
-  std::string out = std::string("output_file");//"/home/chipbuster/POP_2014/C++_asd.tif");
+  std::string file1 = std::string("/home/chipbuster/POP_2014/lndsr.LE71960531999293EDC00.tif");
+  std::string file2 = std::string("/home/chipbuster/POP_2014/lndsr.LE71960532000120EDC00.tif");
+  std::string out = std::string("/home/chipbuster/POP_2014/C++_asd.tif");
   std::string fmt = std::string("GTiff");
   int bands1[3] = {1,2,3};
   int bands2[3] = {1,2,3};

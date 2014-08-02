@@ -66,6 +66,15 @@ namespace imad_utils{
 
 namespace geo_utils{
 
+  //Simple struct to encapsulate a coordinate
+  struct Coord{
+    double x;
+    double y;
+    Coord(double Y, double Y){
+      x=X; y=Y;
+    }
+  }
+
   struct ImageInfo{
     int ncol;
     int nrow;
@@ -102,7 +111,10 @@ namespace geo_utils{
     //Modify coordinates in-place
     void GeotoImg(double& imgX, double& imgY);
     void ImgtoGeo(double& geoX, double& geoY);
+    void GeotoImg(Coord& inp);
+    void ImgtoGeo(Coord& inp);
   };
+
 }
 namespace imad_ImageOverlap{
   struct window{
