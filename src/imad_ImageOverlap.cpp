@@ -84,29 +84,24 @@ namespace imad_ImageOverlap{
         box2.top <= box1.bot || box1.bot <= box2.top ){
         throw std::invalid_argument("Error while opening file" + filename);
       }
-    //Case 2 one image is entirely within the other
-    // determine if corners are inside... first lets do box 2 inside box 1
-    // test if upper corner of box 2 is inside box 1
-    if(box2.UL is inside box1){
-      // test if other corner is inside
-      if(box2.LR is inside box1){
-        //return whole of box 2
-      }
-      else{
-        //return intersection of box 1 and box2
-      }
 
-    }
-    if(box1.UL.x <= box1.UL.x && box 1.UL.y <= box2.UL.y){
-      // test if other corner is inside
-      if(box2.LR is inside box1){
-        //return whole of box 2
-      }
-      else{
-        //return intersection of box 1 and box2
-      }
+    //Case 2 there is an overlap
+    int rightsidebound,leftsidebound,topbound,botbound;
 
-    }
+    /* picture the overlap region as partitioned off by 2 vertical and 2 horizontal lines
+       we define the horizontal and vertical lines in terms of the already-existing
+       delimitors of box1 and box2, and select which ones form the inner box*/
+
+    rightsidebound = min(box1.UR.x,box2.UR.x);
+    leftsidebound  = max(box1.UL.x,box2.UL.x);
+    botbound       = min(box1.bot,box2.bot);
+    topbound       = max(bot1.top,box2.top);
+
+    int xwinsize   = rightsizebound - leftsidebound;
+    int ywinsize   = botbound-topbound;
+
+    offsets_1 = {leftsidebound,topbound};
+    winsize   = {xwinsize,ywinsize};
   }
 
 
