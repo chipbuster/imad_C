@@ -206,7 +206,7 @@ void imad(std::string filename1="", std::string filename2="",
 ((one - pen*eigvarA).array() * (one - pen*eigvarB).array()).sqrt() //denominator
                    ).matrix();
 
-    delta = (rho - oldrho).abs().maxCoeff(); //The max of diffs between correlations
+    delta = (rho - oldrho).array().abs().maxCoeff(); //The max of diffs between correlations
     oldrho = rho;
 
     cout << "Iteration: " << iter << "  --   Delta: " << delta << " Rho: " << rho.transpose() << endl;

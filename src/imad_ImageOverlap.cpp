@@ -9,6 +9,7 @@
 #include <boost/math/distributions.hpp> //for cdf()
 
 using namespace std;
+using namespace geo_utils;
 
 //BoundingBox is only ever used locally, so keep def'n in-file
 //Use image coordinates: x increases going right, y increases going down
@@ -51,13 +52,9 @@ struct BoundingBox{
     LR = Coord(xsize,ysize) + UL;
     LL = Coord(0,ysize) + UL;
     top = y_00; bot = y_00 + ysize;
-    left = x_00; right = x_00 + xsize
+    left = x_00; right = x_00 + xsize;
   }
-
-  bool inside(const BoundingBox& other){
-
-  }
-}
+};
 
 namespace imad_ImageOverlap{
 
@@ -80,28 +77,29 @@ namespace imad_ImageOverlap{
 
     // Case 1, the two images do not overlap, should throw an exception
         //Is b2 left of b1?       Is b1 left of b2?
-    if(( box2.left <= box1.right || box1.right <= box2.left ||
+    if(box2.left <= box1.right || box1.right <= box2.left ||
         box2.top <= box1.bot || box1.bot <= box2.top ){
-        throw std::invalid_argument("Images do not appear to overlap!"));
+        throw std::invalid_argument("Images do not appear to overlap!");
       }
 
     //Case 2 there is an overlap
-    int rightsidebound,leftsidebound,topbound,botbound;
 
     /* picture the overlap region as partitioned off by 2 vertical and 2 horizontal lines
        we define the horizontal and vertical lines in terms of the already-existing
        delimitors of box1 and box2, and select which ones form the inner box*/
 
-    rightsidebound = min(box1.UR.x,box2.UR.x);
-    leftsidebound  = max(box1.UL.x,box2.UL.x);
-    botbound       = min(box1.bot,box2.bot);
-    topbound       = max(bot1.top,box2.top);
+    int rightsidebound = min(box1.UR.x,box2.UR.x);
+    int leftsidebound  = max(box1.UL.x,box2.UL.x);
+    int botbound       = min(box1.bot,box2.bot);
+    int topbound       = max(box1.top,box2.top);
 
-    int xwinsize   = rightsizebound - leftsidebound;
+    int xwinsize   = rightsidebound - leftsidebound;
     int ywinsize   = botbound-topbound;
 
-    offsets_1 = {leftsidebound,topbound};
-    winsize   = {xwinsize,ywinsize};
+    offsets_1[0] = leftsidebound;
+    offsets_1[1] = topbound;
+    winsize[0]   = xwinsize;
+    winsize[1]   = ywinsize;
   }
 
 

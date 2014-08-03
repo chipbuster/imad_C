@@ -51,7 +51,7 @@ namespace geo_utils{
 
   double CoordTransform::ImgtoGeo_X(double imgP, double imgL){
     input(0) = imgP;
-    input(1) = imgL;S
+    input(1) = imgL;
     output = Img2Geo * input;
     return output(0);
   }
@@ -153,11 +153,11 @@ namespace geo_utils{
       return false;
     }
     //Check pixel sizes
-    if(abs(geotransform[1] - other.geotransform[4])) > 0.00001){
+    if(abs(geotransform[1] - other.geotransform[4]) > 0.00001){
       std::cout<< "Pixel sizes do not match. Exiting..." << std::endl;
       return false;
     }
-    if(abs(geotransform[2] - other.geotransform[5])) > 0.00001){
+    if(abs(geotransform[2] - other.geotransform[5]) > 0.00001){
       std::cout<< "Pixel sizes do not match. Exiting..." << std::endl;
       return false;
     }

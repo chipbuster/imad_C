@@ -71,13 +71,16 @@ namespace geo_utils{
   struct Coord{
     int x;
     int y;
+    Coord(){
+      x=0;y=0;
+    }
     Coord(int X, int Y){
       x=X; y=Y;
     }
     Coord operator + (const Coord& other) const{
       return Coord(x + other.x, y + other.y);
     }
-  }
+  };
 
   struct ImageInfo{
     int ncol;
