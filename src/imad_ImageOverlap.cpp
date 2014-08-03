@@ -84,28 +84,10 @@ namespace imad_ImageOverlap{
         box2.top <= box1.bot || box1.bot <= box2.top ){
         throw std::invalid_argument("Images do not appear to overlap!"));
       }
-    //Case 2 one image is entirely within the other
-    // determine if corners are inside... first lets do box 2 inside box 1
-    // test if upper corner of box 2 is inside box 1
-    if(box1.UL.x <= box1.UL.x && box 1.UL.y <= box2.UL.y){
-      // test if other corner is inside
-      if(box2.LR is inside box1){
-        //return whole of box 2
-      }
-      else{
-        //return intersection of box 1 and box2
-      }
 
-    }
 
-    //Case 3: Images do not contain corners, but still overlap, e.g. a cross
-    if(){
+    assert(winsize[0] > 0 && winsize[1] > 1);
 
-    }
-
-    cout << "Automatic overlap detection failed. This is a program bug." << endl
-         << "You can attempt to manually specify offsets and overlaps." << endl;
-    throw std::runtime_error("Image overlap detection has failed.");
   }
 
 

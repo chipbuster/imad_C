@@ -12,7 +12,8 @@
 
 using namespace Eigen;
 
-inline int min(int a, int b){  return a < b ? a : b; }
+inline int min(int a, int b){ return a < b ? a : b; }
+inline int max(int a, int b){ return a > b ? a : b; }
 
 /* This file contains the headers for the iMad project. */
 /* All GDAL functions derive from gdal_priv.h           */
