@@ -82,7 +82,7 @@ namespace imad_ImageOverlap{
         //Is b2 left of b1?       Is b1 left of b2?
     if(( box2.left <= box1.right || box1.right <= box2.left ||
         box2.top <= box1.bot || box1.bot <= box2.top ){
-        throw std::invalid_argument("Error while opening file" + filename);
+        throw std::invalid_argument("Images do not appear to overlap!"));
       }
 
     //Case 2 there is an overlap
